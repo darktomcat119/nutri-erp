@@ -1,0 +1,63 @@
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
+import { ProveedoresService } from './proveedores.service';
+import { CreateProveedorDto } from './dto/create-proveedor.dto';
+import { UpdateProveedorDto } from './dto/update-proveedor.dto';
+import { ReorderProveedoresDto } from './dto/reorder-proveedores.dto';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
+
+@ApiTags('Proveedores')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'))
+@Controller('proveedores')
+export class ProveedoresController {
+  constructor(private proveedoresService: ProveedoresService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Listar proveedores activos' })
+  @ApiQuery({ name: 'categoria', required: false })
+  async findAll(@Query('categoria') categoria?: string) {
+    return this.proveedoresService.findAll({ categoria });
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Obtener proveedor por ID' })
+  async findOne(@Param('id') id: string) {
+    return this.proveedoresService.findOne(id);
+  }
+
+  @Post()
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Crear proveedor' })
+  async create(@Body() dto: CreateProveedorDto) {
+    return this.proveedoresService.create(dto);
+  }
+
+  @Patch('reorder')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Reordenar ruta de proveedores' })
+  async reorder(@Body() dto: ReorderProveedoresDto) {
+    return this.proveedoresService.reorder(dto);
+  }
+
+  @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Actualizar proveedor' })
+  async update(@Param('id') id: string, @Body() dto: UpdateProveedorDto) {
+    return this.proveedoresService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Desactivar proveedor' })
+  async remove(@Param('id') id: string) {
+    return this.proveedoresService.remove(id);
+  }
+}
