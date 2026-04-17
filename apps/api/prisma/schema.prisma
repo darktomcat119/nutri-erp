@@ -28,10 +28,13 @@ model Usuario {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  sucursal      Sucursal?       @relation(fields: [sucursalId], references: [id])
-  requisiciones Requisicion[]
-  recepciones   Recepcion[]
-  cambiosLog    CambioCompraLog[]
+  sucursal           Sucursal?          @relation(fields: [sucursalId], references: [id])
+  requisiciones      Requisicion[]
+  recepciones        Recepcion[]
+  cambiosLog         CambioCompraLog[]
+  semanasCerradas    SemanaCerrada[]
+  presupuestosInsGen PresupuestoIns[]   @relation("GeneradoPor")
+  presupuestosInsApr PresupuestoIns[]   @relation("AprobadoPor")
 
   @@map("usuarios")
 }
@@ -40,12 +43,17 @@ model Usuario {
 // BRANCHES
 // ============================================
 model Sucursal {
-  id        String   @id @default(uuid())
-  codigo    String   @unique
-  nombre    String
-  activa    Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                      String    @id @default(uuid())
+  codigo                  String    @unique
+  nombre                  String
+  cafeteriaId             String?   @map("cafeteria_id")
+  ordereatTokenEnc        String?   @map("ordereat_token_enc")
+  ordereatTokenLast4      String?   @map("ordereat_token_last4")
+  ordereatTokenUpdatedAt  DateTime? @map("ordereat_token_updated_at")
+  ordereatTokenUpdatedBy  String?   @map("ordereat_token_updated_by")
+  activa                  Boolean   @default(true)
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
 
   usuarios              Usuario[]
   configProductos       ConfigSucursalProducto[]
@@ -55,6 +63,8 @@ model Sucursal {
   inventarioPos         InventarioPos[]
   posUploads            PosUpload[]
   presupuestosSemanales PresupuestoSemanal[]
+  presupuestosIns       PresupuestoIns[]
+  requisicionesMos      RequisicionMos[]
 
   @@map("sucursales")
 }
@@ -63,21 +73,35 @@ model Sucursal {
 // SUPPLIERS
 // ============================================
 model Proveedor {
-  id        String   @id @default(uuid())
-  nombre    String   @unique
-  categoria String?
-  contacto  String?
-  telefono  String?
-  ordenRuta Int      @default(0) @map("orden_ruta")
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(uuid())
+  nombre         String   @unique
+  categoria      String?
+  contacto       String?
+  telefono       String?
+  centroCompras  String?  @map("centro_compras")
+  ordenRuta      Int      @default(0) @map("orden_ruta")
+  activo         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   productos        Producto[]
   insumos          Insumo[]
   ordenCompraItems OrdenCompraItem[]
 
   @@map("proveedores")
+}
+
+// ============================================
+// CATEGORIES
+// ============================================
+model Categoria {
+  id     String  @id @default(uuid())
+  nombre String
+  tipo   String  // "MOS" or "INS"
+  activo Boolean @default(true)
+
+  @@unique([nombre, tipo])
+  @@map("categorias")
 }
 
 // ============================================
@@ -90,22 +114,24 @@ model Producto {
   nombreSistema String?  @map("nombre_sistema")
   categoria     String?
   marca         String?
-  pzXDisplay    Int      @map("pz_x_display")
+  pzXDisplay    Int      @default(0) @map("pz_x_display")
   costoDisplay  Decimal  @map("costo_display") @db.Decimal(10, 2)
   costoUnitario Decimal  @map("costo_unitario") @db.Decimal(10, 2)
   proveedorId   String   @map("proveedor_id")
   ordereatId    String?  @map("ordereat_id")
+  origen        String   @default("Compras")
   activo        Boolean  @default(true)
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  proveedor         Proveedor                @relation(fields: [proveedorId], references: [id])
-  configSucursales  ConfigSucursalProducto[]
-  requisicionItems  RequisicionItem[]
-  ordenCompraItems  OrdenCompraItem[]
-  ordenEntregaItems OrdenEntregaItem[]
-  recepcionItems    RecepcionItem[]
-  inventarioPos     InventarioPos[]
+  proveedor           Proveedor                @relation(fields: [proveedorId], references: [id])
+  configSucursales    ConfigSucursalProducto[]
+  requisicionItems    RequisicionItem[]
+  ordenCompraItems    OrdenCompraItem[]
+  ordenEntregaItems   OrdenEntregaItem[]
+  recepcionItems      RecepcionItem[]
+  inventarioPos       InventarioPos[]
+  requisicionMosItems RequisicionMosItem[]
 
   @@map("productos")
 }
@@ -114,17 +140,19 @@ model Producto {
 // INGREDIENTS (INSUMOS)
 // ============================================
 model Insumo {
-  id            String   @id @default(uuid())
-  codigo        String   @unique
-  nombre        String
-  categoria     String?
-  unidad        String
-  presentacion  String?
-  costoUnitario Decimal  @map("costo_unitario") @db.Decimal(10, 2)
-  proveedorId   String   @map("proveedor_id")
-  activo        Boolean  @default(true)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id                String   @id @default(uuid())
+  codigo            String   @unique
+  nombre            String
+  categoria         String?
+  unidad            String
+  presentacion      String?
+  cantidadPorDisplay Int?    @map("cantidad_por_display")
+  costoUnitario     Decimal  @map("costo_unitario") @db.Decimal(10, 2)
+  proveedorId       String   @map("proveedor_id")
+  origen            String   @default("Compras")
+  activo            Boolean  @default(true)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   proveedor         Proveedor         @relation(fields: [proveedorId], references: [id])
   requisicionItems  RequisicionItem[]
@@ -136,21 +164,38 @@ model Insumo {
 }
 
 // ============================================
-// DISHES
+// DISHES (PLATILLOS) + RECIPES
 // ============================================
 model Platillo {
   id        String   @id @default(uuid())
   nombre    String   @unique
   costo     Decimal  @db.Decimal(10, 2)
+  precio    Decimal? @db.Decimal(10, 2)
   activo    Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  recetaItems RecetaItem[]
+
   @@map("platillos")
 }
 
+model RecetaItem {
+  id          String  @id @default(uuid())
+  platilloId  String  @map("platillo_id")
+  ingrediente String
+  unidad      String
+  cantidad    Decimal @db.Decimal(10, 4)
+  costoUnit   Decimal @map("costo_unit") @db.Decimal(10, 4)
+  costoTotal  Decimal @map("costo_total") @db.Decimal(10, 2)
+
+  platillo Platillo @relation(fields: [platilloId], references: [id], onDelete: Cascade)
+
+  @@map("receta_items")
+}
+
 // ============================================
-// PER-BRANCH PRODUCT CONFIG
+// PER-BRANCH PRODUCT CONFIG (MOS maximums)
 // ============================================
 model ConfigSucursalProducto {
   id          String   @id @default(uuid())
@@ -170,11 +215,59 @@ model ConfigSucursalProducto {
 }
 
 // ============================================
-// REQUISITIONS
+// INS BUDGET (from sales report)
+// ============================================
+enum PresupuestoInsEstado {
+  BORRADOR
+  APROBADO
+  RECHAZADO
+}
+
+model PresupuestoIns {
+  id              String               @id @default(uuid())
+  semana          String
+  sucursalId      String               @map("sucursal_id")
+  fechaEjecucion  DateTime             @map("fecha_ejecucion")
+  periodoVentas   String?              @map("periodo_ventas")
+  montoCalculado  Decimal              @map("monto_calculado") @db.Decimal(12, 2)
+  montoAprobado   Decimal?             @map("monto_aprobado") @db.Decimal(12, 2)
+  estado          PresupuestoInsEstado @default(BORRADOR)
+  generadoPorId   String               @map("generado_por_id")
+  aprobadoPorId   String?              @map("aprobado_por_id")
+  notas           String?
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  sucursal    Sucursal @relation(fields: [sucursalId], references: [id])
+  generadoPor Usuario  @relation("GeneradoPor", fields: [generadoPorId], references: [id])
+  aprobadoPor Usuario? @relation("AprobadoPor", fields: [aprobadoPorId], references: [id])
+  detalles    PresupuestoInsDetalle[]
+
+  @@unique([semana, sucursalId])
+  @@map("presupuestos_ins")
+}
+
+model PresupuestoInsDetalle {
+  id               String @id @default(uuid())
+  presupuestoInsId String @map("presupuesto_ins_id")
+  productoVendido  String @map("producto_vendido")
+  cantidadVendida  Int    @map("cantidad_vendida")
+  costoPlatillo    Decimal @map("costo_platillo") @db.Decimal(10, 2)
+  subtotal         Decimal @db.Decimal(10, 2)
+  vinculado        Boolean @default(false)
+
+  presupuestoIns PresupuestoIns @relation(fields: [presupuestoInsId], references: [id], onDelete: Cascade)
+
+  @@map("presupuesto_ins_detalles")
+}
+
+// ============================================
+// REQUISITIONS (INS — manual by Encargado)
 // ============================================
 enum RequisicionEstado {
   BORRADOR
   ENVIADA
+  APROBADA_SUPERVISOR
   APROBADA
   RECHAZADA
 }
@@ -185,20 +278,27 @@ enum AreaCompra {
 }
 
 model Requisicion {
-  id          String            @id @default(uuid())
-  semana      String
-  sucursalId  String            @map("sucursal_id")
-  creadoPorId String            @map("creado_por_id")
-  estado      RequisicionEstado @default(BORRADOR)
-  notas       String?
-  createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
+  id                 String            @id @default(uuid())
+  semana             String
+  sucursalId         String            @map("sucursal_id")
+  creadoPorId        String            @map("creado_por_id")
+  area               AreaCompra        @default(INS)
+  estado             RequisicionEstado @default(BORRADOR)
+  presupuestoInsId   String?           @map("presupuesto_ins_id")
+  montoTotal         Decimal?          @map("monto_total") @db.Decimal(12, 2)
+  excedePresupuesto  Boolean           @default(false) @map("excede_presupuesto")
+  justificacionExceso String?          @map("justificacion_exceso")
+  notasSupervisor    String?           @map("notas_supervisor")
+  notasAdmin         String?           @map("notas_admin")
+  notas              String?
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
 
   sucursal  Sucursal          @relation(fields: [sucursalId], references: [id])
   creadoPor Usuario           @relation(fields: [creadoPorId], references: [id])
   items     RequisicionItem[]
 
-  @@unique([semana, sucursalId])
+  @@unique([semana, sucursalId, area])
   @@map("requisiciones")
 }
 
@@ -209,6 +309,8 @@ model RequisicionItem {
   productoId         String?    @map("producto_id")
   insumoId           String?    @map("insumo_id")
   cantidadSolicitada Decimal    @map("cantidad_solicitada") @db.Decimal(10, 2)
+  costoUnitario      Decimal?   @map("costo_unitario") @db.Decimal(10, 2)
+  subtotal           Decimal?   @db.Decimal(10, 2)
   notas              String?
 
   requisicion Requisicion @relation(fields: [requisicionId], references: [id], onDelete: Cascade)
@@ -216,6 +318,53 @@ model RequisicionItem {
   insumo      Insumo?     @relation(fields: [insumoId], references: [id])
 
   @@map("requisicion_items")
+}
+
+// ============================================
+// MOS REQUISITION (auto-calculated)
+// ============================================
+enum RequisicionMosEstado {
+  GENERADA
+  REVISADA
+  APROBADA
+}
+
+model RequisicionMos {
+  id             String               @id @default(uuid())
+  semana         String
+  sucursalId     String               @map("sucursal_id")
+  fechaInventario DateTime            @map("fecha_inventario")
+  totalDisplays  Int                  @map("total_displays")
+  totalDinero    Decimal              @map("total_dinero") @db.Decimal(12, 2)
+  estado         RequisicionMosEstado @default(GENERADA)
+  notas          String?
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+
+  sucursal Sucursal             @relation(fields: [sucursalId], references: [id])
+  items    RequisicionMosItem[]
+
+  @@unique([semana, sucursalId])
+  @@map("requisiciones_mos")
+}
+
+model RequisicionMosItem {
+  id                  String  @id @default(uuid())
+  requisicionMosId    String  @map("requisicion_mos_id")
+  productoId          String  @map("producto_id")
+  inventarioActual    Int     @map("inventario_actual")
+  maximo              Int
+  compraNecesaria     Int     @map("compra_necesaria")
+  displaysAComprar    Int     @map("displays_a_comprar")
+  costoDisplay        Decimal @map("costo_display") @db.Decimal(10, 2)
+  dinero              Decimal @db.Decimal(10, 2)
+  sugerenciaEncargado String? @map("sugerencia_encargado")
+  cantidadFinal       Int?    @map("cantidad_final")
+
+  requisicionMos RequisicionMos @relation(fields: [requisicionMosId], references: [id], onDelete: Cascade)
+  producto       Producto       @relation(fields: [productoId], references: [id])
+
+  @@map("requisicion_mos_items")
 }
 
 // ============================================
@@ -396,6 +545,21 @@ model PosUpload {
   sucursal Sucursal @relation(fields: [sucursalId], references: [id])
 
   @@map("pos_uploads")
+}
+
+// ============================================
+// WEEK CLOSING
+// ============================================
+model SemanaCerrada {
+  id        String   @id @default(uuid())
+  semana    String   @unique
+  cerradoPorId String @map("cerrado_por_id")
+  notas     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cerradoPor Usuario @relation(fields: [cerradoPorId], references: [id])
+
+  @@map("semanas_cerradas")
 }
 
 // ============================================

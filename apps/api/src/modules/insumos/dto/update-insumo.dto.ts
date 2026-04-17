@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, Min, IsUUID, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsInt, Min, IsUUID, IsBoolean } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateInsumoDto {
@@ -10,4 +10,6 @@ export class UpdateInsumoDto {
   @ApiPropertyOptional() @IsOptional() @IsNumber() @Min(0) costoUnitario?: number;
   @ApiPropertyOptional() @IsOptional() @IsUUID() proveedorId?: string;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() activo?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(0) cantidadPorDisplay?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() origen?: string;
 }

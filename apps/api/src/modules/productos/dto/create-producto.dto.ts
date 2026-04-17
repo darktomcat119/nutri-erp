@@ -2,9 +2,10 @@ import { IsString, IsOptional, IsInt, IsNumber, Min, IsUUID } from 'class-valida
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateProductoDto {
-  @ApiProperty({ example: 'MO-021' })
+  @ApiPropertyOptional({ example: 'MO-021' })
+  @IsOptional()
   @IsString()
-  codigo: string;
+  codigo?: string;
 
   @ApiProperty({ example: 'GALLETA NUEVA' })
   @IsString()
@@ -48,4 +49,9 @@ export class CreateProductoDto {
   @IsOptional()
   @IsString()
   ordereatId?: string;
+
+  @ApiPropertyOptional({ example: 'Nacional' })
+  @IsOptional()
+  @IsString()
+  origen?: string;
 }

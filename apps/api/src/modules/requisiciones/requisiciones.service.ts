@@ -60,11 +60,12 @@ export class RequisicionesService {
       throw new ForbiddenException('Usuario sin sucursal asignada');
     }
 
+    const area = dto.area || 'INS';
     const existing = await this.prisma.requisicion.findUnique({
-      where: { semana_sucursalId: { semana: dto.semana, sucursalId: user.sucursalId } },
+      where: { semana_sucursalId_area: { semana: dto.semana, sucursalId: user.sucursalId, area } },
     });
     if (existing) {
-      throw new BadRequestException('Ya existe una requisicion para esta semana y sucursal');
+      throw new BadRequestException('Ya existe una requisicion para esta semana, sucursal y area');
     }
 
     return this.prisma.requisicion.create({
@@ -72,6 +73,7 @@ export class RequisicionesService {
         semana: dto.semana,
         sucursalId: user.sucursalId,
         creadoPorId: user.sub,
+        area,
         notas: dto.notas,
         items: {
           create: dto.items.map((item) => ({

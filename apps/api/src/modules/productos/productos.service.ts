@@ -1,5 +1,6 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import ExcelJS from 'exceljs';
 import { CreateProductoDto } from './dto/create-producto.dto';
 import { UpdateProductoDto } from './dto/update-producto.dto';
 
@@ -28,12 +29,23 @@ export class ProductosService {
     return producto;
   }
 
+  async getNextCode() {
+    const last = await this.prisma.producto.findFirst({ where: { codigo: { startsWith: 'MO-' } }, orderBy: { codigo: 'desc' } });
+    const num = last ? parseInt(last.codigo.replace('MO-', '')) + 1 : 1;
+    return { data: `MO-${String(num).padStart(3, '0')}`, message: 'Siguiente codigo' };
+  }
+
   async create(dto: CreateProductoDto): Promise<unknown> {
-    const existing = await this.prisma.producto.findUnique({ where: { codigo: dto.codigo } });
-    if (existing) throw new ConflictException('El codigo de producto ya existe');
+    if (!dto.codigo) {
+      const { data: nextCode } = await this.getNextCode();
+      dto.codigo = nextCode;
+    } else {
+      const existing = await this.prisma.producto.findUnique({ where: { codigo: dto.codigo } });
+      if (existing) throw new ConflictException('El codigo de producto ya existe');
+    }
 
     return this.prisma.producto.create({
-      data: dto,
+      data: dto as any,
       include: { proveedor: true },
     });
   }
@@ -53,5 +65,180 @@ export class ProductosService {
       where: { id },
       data: { activo: false },
     });
+  }
+
+  async exportExcel(): Promise<Buffer> {
+    const productos = await this.prisma.producto.findMany({
+      include: { proveedor: true },
+      orderBy: { codigo: 'asc' },
+    });
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Productos MOS');
+
+    // Row 1-4: warning/instruction rows matching MO01 format
+    ws.mergeCells('A1:I1');
+    ws.getCell('A1').value = 'CATÁLOGO DE PRODUCTOS (MOS) — NO MODIFICAR ESTRUCTURA';
+    ws.getCell('A1').font = { bold: true, color: { argb: 'FFFF0000' }, size: 12 };
+
+    ws.mergeCells('A2:I2');
+    ws.getCell('A2').value = 'NO FILTRAR, NO AGREGAR COLUMNAS INTERMEDIAS';
+    ws.getCell('A2').font = { bold: true, color: { argb: 'FFFF0000' } };
+
+    ws.mergeCells('A3:I3');
+    ws.getCell('A3').value = 'Los datos inician en la fila 6. La fila 5 contiene los encabezados.';
+    ws.getCell('A3').font = { italic: true };
+
+    ws.mergeCells('A4:I4');
+    ws.getCell('A4').value = '';
+
+    // Row 5: headers matching MO01 exactly
+    const headers = ['PRODUCTO', 'NOMBRE SISTEMA', 'CATEGORÍA', 'MARCA', 'PZ X DISPLAY', 'PROVEEDOR', 'COSTO X DISPLAY', 'COSTO UNITARIO', 'QUIEN SURTE'];
+    const headerRow = ws.getRow(5);
+    headers.forEach((h, i) => { headerRow.getCell(i + 1).value = h; });
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.eachCell((cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F5496' } };
+      cell.alignment = { horizontal: 'center' };
+    });
+
+    // Column widths
+    ws.getColumn(1).width = 30; // PRODUCTO
+    ws.getColumn(2).width = 30; // NOMBRE SISTEMA
+    ws.getColumn(3).width = 18; // CATEGORÍA
+    ws.getColumn(4).width = 18; // MARCA
+    ws.getColumn(5).width = 14; // PZ X DISPLAY
+    ws.getColumn(6).width = 22; // PROVEEDOR
+    ws.getColumn(7).width = 18; // COSTO X DISPLAY
+    ws.getColumn(8).width = 18; // COSTO UNITARIO
+    ws.getColumn(9).width = 16; // QUIEN SURTE
+
+    // Row 6+: data
+    for (const p of productos) {
+      const origenExport = (p.origen || 'Compras').toUpperCase() === 'SUCURSAL' ? 'SUCURSAL' : 'COMPRAS';
+      ws.addRow([
+        p.nombre,
+        p.nombreSistema || p.nombre,
+        p.categoria,
+        p.marca,
+        p.pzXDisplay,
+        p.proveedor.nombre,
+        Number(p.costoDisplay),
+        Number(p.costoUnitario),
+        origenExport,
+      ]);
+    }
+
+    const buffer = await wb.xlsx.writeBuffer();
+    return Buffer.from(buffer);
+  }
+
+  async importExcel(fileBuffer: Buffer): Promise<{ created: number; updated: number; errors: string[] }> {
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(fileBuffer.buffer as ArrayBuffer);
+    const ws = wb.worksheets[0];
+    if (!ws) throw new BadRequestException('El archivo no contiene hojas');
+
+    // Smart header detection — find row containing "PRODUCTO" in column 1
+    let headerRow = 0;
+    ws.eachRow((row, ri) => {
+      const val = String(row.getCell(1).value || '').trim().toUpperCase();
+      if (val === 'PRODUCTO' && !headerRow) headerRow = ri;
+    });
+    if (!headerRow) throw new BadRequestException('No se encontró la fila de encabezados (busca "PRODUCTO" en columna 1)');
+
+    const proveedores = await this.prisma.proveedor.findMany();
+    const provMap = new Map(proveedores.map(p => [p.nombre.toLowerCase().trim(), p.id]));
+
+    let created = 0, updated = 0;
+    const errors: string[] = [];
+
+    // MO01 format: PRODUCTO(1) | NOMBRE SISTEMA(2) | CATEGORÍA(3) | MARCA(4) | PZ X DISPLAY(5) | PROVEEDOR(6) | COSTO X DISPLAY(7) | COSTO UNITARIO(8) | QUIEN SURTE(9)
+    const rows: Array<Record<string, unknown>> = [];
+    ws.eachRow((row, ri) => {
+      if (ri <= headerRow) return;
+      const producto = String(row.getCell(1).value || '').trim();
+      if (!producto) return;
+
+      rows.push({
+        producto,
+        nombreSistema: String(row.getCell(2).value || '').trim(),
+        categoria: String(row.getCell(3).value || '').trim() || null,
+        marca: String(row.getCell(4).value || '').trim() || null,
+        pzXDisplay: parseInt(String(row.getCell(5).value)) || 0,
+        proveedor: String(row.getCell(6).value || '').trim(),
+        costoDisplay: parseFloat(String(row.getCell(7).value)) || 0,
+        costoUnitarioRaw: row.getCell(8).value,
+        origen: String(row.getCell(9).value || 'Compras').trim(),
+        rowNum: ri,
+      });
+    });
+
+    for (const r of rows) {
+      try {
+        const provNombre = (r.proveedor as string).toLowerCase().trim();
+        let provId = provMap.get(provNombre);
+
+        // If proveedor not found, try partial match
+        if (!provId) {
+          for (const [name, id] of provMap) {
+            if (name.includes(provNombre) || provNombre.includes(name)) {
+              provId = id; break;
+            }
+          }
+        }
+        // Auto-create supplier if not found
+        if (!provId) {
+          const provName = (r.proveedor as string).trim();
+          if (!provName) { errors.push(`Fila ${r.rowNum}: Sin proveedor`); continue; }
+          const maxRuta = await this.prisma.proveedor.aggregate({ _max: { ordenRuta: true } });
+          const newProv = await this.prisma.proveedor.create({
+            data: { nombre: provName, ordenRuta: (maxRuta._max.ordenRuta || 0) + 1 },
+          });
+          provId = newProv.id;
+          provMap.set(provNombre, provId);
+        }
+
+        const pzXDisplay = r.pzXDisplay as number;
+        const costoDisplay = r.costoDisplay as number;
+        const costoUnitario = pzXDisplay > 0 ? Math.round((costoDisplay / pzXDisplay) * 100) / 100 : 0;
+
+        const nombreSistema = r.nombreSistema as string || r.producto as string;
+        const nombre = [nombreSistema, pzXDisplay > 0 ? `${pzXDisplay}PZ` : '', r.marca].filter(Boolean).join(' ');
+        const origen = r.origen as string;
+        const origenNorm = origen.toUpperCase().includes('SUCURSAL') ? 'Sucursal' : 'Compras';
+
+        const data = {
+          nombre,
+          nombreSistema,
+          categoria: r.categoria as string,
+          marca: r.marca as string,
+          pzXDisplay,
+          costoDisplay,
+          costoUnitario,
+          proveedorId: provId,
+          origen: origenNorm,
+        };
+
+        // Use producto name as matching key since codes might not exist in import
+        const existingByName = await this.prisma.producto.findFirst({
+          where: { OR: [{ nombreSistema }, { nombre: r.producto as string }] },
+        });
+
+        if (existingByName) {
+          await this.prisma.producto.update({ where: { id: existingByName.id }, data });
+          updated++;
+        } else {
+          const last = await this.prisma.producto.findFirst({ where: { codigo: { startsWith: 'MO-' } }, orderBy: { codigo: 'desc' } });
+          const num = last ? parseInt(last.codigo.replace('MO-', '')) + 1 : 1;
+          await this.prisma.producto.create({ data: { ...data, codigo: `MO-${String(num).padStart(3, '0')}` } });
+          created++;
+        }
+      } catch (e) {
+        errors.push(`Fila ${r.rowNum}: ${(e as Error).message}`);
+      }
+    }
+
+    return { created, updated, errors };
   }
 }

@@ -1,4 +1,11 @@
+import { PageHeader } from '@/components/page-header';
 import { PlatillosTable } from '@/features/platillos/components/PlatillosTable';
+
 export default function PlatillosPage(): JSX.Element {
-  return (<div><h1 className="text-2xl font-bold text-slate-900 mb-6">Platillos</h1><PlatillosTable /></div>);
+  return (
+    <div>
+      <PageHeader title="Platillos" description="Recetas y costos por platillo" />
+      <PlatillosTable />
+    </div>
+  );
 }

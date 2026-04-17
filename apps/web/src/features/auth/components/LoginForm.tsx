@@ -5,19 +5,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Eye, EyeOff, ShoppingCart, AlertCircle, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { ParticleCanvas } from './ParticleCanvas';
@@ -53,18 +46,12 @@ export function LoginForm(): JSX.Element {
       router.push('/');
     } catch (err) {
       let message = 'Ocurrio un error inesperado. Intenta mas tarde.';
-
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
-        if (status === 401) {
-          message = 'Correo o contrasena incorrectos.';
-        } else if (status === 403) {
-          message = 'Tu cuenta esta desactivada. Contacta al administrador.';
-        } else if (!err.response) {
-          message = 'No se pudo conectar con el servidor. Verifica tu conexion.';
-        }
+        if (status === 401) message = 'Correo o contrasena incorrectos.';
+        else if (status === 403) message = 'Tu cuenta esta desactivada. Contacta al administrador.';
+        else if (!err.response) message = 'No se pudo conectar con el servidor.';
       }
-
       setError(message);
       toast.error(message);
     } finally {
@@ -73,90 +60,101 @@ export function LoginForm(): JSX.Element {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 overflow-hidden">
-      {/* Animated Background */}
-      <ParticleCanvas />
-
-      {/* Logo / Brand */}
-      <div className="relative z-10 mb-8 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 text-white mb-4 shadow-lg backdrop-blur-sm border border-white/10">
-          <ShoppingCart className="w-8 h-8" />
-        </div>
-        <h1 className="text-3xl font-bold text-white tracking-tight">
-          Nutri Cafeteria
-        </h1>
-        <p className="text-slate-400 mt-1">Sistema de Compras</p>
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0">
+        <Image src="/assets/images/dark-abstract.jpg" alt="" fill className="object-cover scale-110" priority />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950/95 via-slate-900/90 to-blue-950/80" />
       </div>
 
-      {/* Login Card */}
-      <Card className="relative z-10 w-full max-w-sm shadow-2xl border-white/10 bg-white/95 backdrop-blur-md">
-        <CardHeader className="space-y-1 pb-4">
-          <CardTitle className="text-xl text-center">Iniciar Sesion</CardTitle>
-          <CardDescription className="text-center">
-            Ingresa tus credenciales para acceder al sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/* Error Banner */}
+      <ParticleCanvas />
+
+      {/* Content */}
+      <div className="relative z-10 w-full max-w-[400px] px-5">
+        {/* Logo */}
+        <div className="mb-10 text-center">
+          <div className="inline-block mb-5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/assets/images/logo.png"
+              alt="Nutri Cafeteria"
+              className="h-14 w-auto drop-shadow-2xl mx-auto"
+            />
+          </div>
+          <div className="flex items-center justify-center gap-2">
+            <div className="h-px w-8 bg-gradient-to-r from-transparent to-blue-400/30" />
+            <p className="text-[11px] text-blue-300/50 tracking-[0.2em] uppercase font-medium">
+              Sistema de Compras
+            </p>
+            <div className="h-px w-8 bg-gradient-to-l from-transparent to-blue-400/30" />
+          </div>
+        </div>
+
+        {/* Card */}
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-2xl shadow-2xl shadow-black/20 p-7 sm:p-8">
+          <div className="mb-7">
+            <h2 className="text-lg font-semibold text-white tracking-tight">Iniciar Sesion</h2>
+            <p className="text-[13px] text-slate-500 mt-1">
+              Ingresa tus credenciales para acceder
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {error && (
-              <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 p-3">
-                <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
-                <p className="text-sm text-red-700">{error}</p>
+              <div className="flex items-center gap-2.5 rounded-xl bg-red-500/10 border border-red-500/15 p-3">
+                <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
+                <p className="text-[13px] text-red-300">{error}</p>
               </div>
             )}
 
-            {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email">Correo electronico</Label>
+              <Label htmlFor="email" className="text-[13px] text-slate-400 font-medium">
+                Correo electronico
+              </Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="tu.correo@nutri.com"
                 autoComplete="email"
                 autoFocus
-                className={errors.email ? 'border-red-400 focus-visible:ring-red-400' : ''}
+                className={`h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-slate-600 shadow-none hover:border-white/[0.15] focus-visible:ring-blue-500/30 focus-visible:border-blue-400/40 ${
+                  errors.email ? 'border-red-400/40' : ''
+                }`}
                 {...register('email')}
               />
-              {errors.email && (
-                <p className="text-xs text-red-600">{errors.email.message}</p>
-              )}
+              {errors.email && <p className="text-[11px] text-red-400">{errors.email.message}</p>}
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password">Contrasena</Label>
+              <Label htmlFor="password" className="text-[13px] text-slate-400 font-medium">
+                Contrasena
+              </Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  className={`pr-10 ${errors.password ? 'border-red-400 focus-visible:ring-red-400' : ''}`}
+                  className={`h-11 pr-10 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-slate-600 shadow-none hover:border-white/[0.15] focus-visible:ring-blue-500/30 focus-visible:border-blue-400/40 ${
+                    errors.password ? 'border-red-400/40' : ''
+                  }`}
                   {...register('password')}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-400 transition-colors p-1"
                   tabIndex={-1}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-xs text-red-600">{errors.password.message}</p>
-              )}
+              {errors.password && <p className="text-[11px] text-red-400">{errors.password.message}</p>}
             </div>
 
-            {/* Submit */}
             <Button
               type="submit"
-              className="w-full h-10 bg-slate-900 hover:bg-slate-800"
+              className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-lg shadow-blue-600/20 hover:shadow-blue-500/30 transition-all duration-300 group"
               disabled={loading}
             >
               {loading ? (
@@ -165,25 +163,27 @@ export function LoginForm(): JSX.Element {
                   Iniciando sesion...
                 </>
               ) : (
-                'Iniciar Sesion'
+                <>
+                  Iniciar Sesion
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+                </>
               )}
             </Button>
           </form>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-2 pt-0">
-          <div className="w-full border-t border-slate-100" />
-          <p className="text-xs text-slate-400 text-center leading-relaxed pt-1">
-            ¿Olvidaste tu contrasena? Contacta al administrador
-            <br />
-            del sistema para restablecerla.
-          </p>
-        </CardFooter>
-      </Card>
 
-      {/* Footer */}
-      <p className="relative z-10 mt-8 text-xs text-slate-500">
-        Nutri Cafeteria S.A. de C.V. — {new Date().getFullYear()}
-      </p>
+          <div className="mt-7 pt-5 border-t border-white/[0.06]">
+            <p className="text-[11px] text-slate-600 text-center leading-relaxed">
+              ¿Olvidaste tu contrasena? Contacta al administrador
+              del sistema para restablecerla.
+            </p>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <p className="mt-8 text-[11px] text-slate-700 text-center">
+          Nutri Cafeteria S.A. de C.V. — {new Date().getFullYear()}
+        </p>
+      </div>
     </div>
   );
 }

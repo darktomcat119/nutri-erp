@@ -24,6 +24,10 @@ services:
       JWT_SECRET: nutri-erp-super-secret-key-change-in-production-2026
       JWT_EXPIRATION: 8h
       PORT: "4000"
+      # 32-byte key (base64) — generate with: openssl rand -base64 32
+      # DO NOT share across envs. Rotating means re-entering all tokens.
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:-}
+      ORDEREAT_API_URL: ${ORDEREAT_API_URL:-https://api.ordereat.com}
     ports:
       - "4000:4000"
     restart: on-failure:3

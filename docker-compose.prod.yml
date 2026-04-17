@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: nutri_erp
+      POSTGRES_USER: nutri
+      POSTGRES_PASSWORD: NutriERP_Pr0d_2026!
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nutri -d nutri_erp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://nutri:NutriERP_Pr0d_2026!@postgres:5432/nutri_erp
+      JWT_SECRET: nutri-erp-prod-jwt-secret-x9k2m4p7q1w8e5r3
+      JWT_EXPIRATION: 8h
+      PORT: "4000"
+      # Required: 32-byte base64 key. Generate once: openssl rand -base64 32
+      # Store in /opt/nutri-erp/.env on the VPS. Rotating invalidates stored tokens.
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:?TOKEN_ENCRYPTION_KEY must be set}
+      ORDEREAT_API_URL: ${ORDEREAT_API_URL:-https://api.ordereat.com}
+    ports:
+      - "4041:4000"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://45.55.175.194:4041/api/v1
+    environment:
+      NEXT_PUBLIC_API_URL: http://45.55.175.194:4041/api/v1
+    ports:
+      - "4040:3000"
+    restart: unless-stopped
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

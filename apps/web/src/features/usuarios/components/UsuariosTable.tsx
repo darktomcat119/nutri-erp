@@ -42,6 +42,17 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Pencil, Trash2, Plus, Search, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
+import { ConfirmDialog } from '@/components/confirm-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Sucursal {
   id: string;
@@ -65,6 +76,9 @@ export function UsuariosTable(): JSX.Element {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
   const [filter, setFilter] = useState('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [resetUser, setResetUser] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
@@ -132,26 +146,30 @@ export function UsuariosTable(): JSX.Element {
     }
   };
 
-  const handleResetPassword = async (user: User): Promise<void> => {
-    const newPassword = prompt(`Nueva contrasena para ${user.nombre}:`);
-    if (!newPassword) return;
+  const handleResetPassword = async (): Promise<void> => {
+    if (!resetUser) return;
     if (newPassword.length < 6) { toast.error('La contrasena debe tener al menos 6 caracteres'); return; }
     try {
-      await api.patch(`/usuarios/${user.id}`, { password: newPassword });
-      toast.success(`Contrasena de ${user.nombre} restablecida`);
+      await api.patch(`/usuarios/${resetUser.id}`, { password: newPassword });
+      toast.success(`Contrasena de ${resetUser.nombre} restablecida`);
     } catch {
       toast.error('Error al restablecer contrasena');
+    } finally {
+      setResetUser(null);
+      setNewPassword('');
     }
   };
 
-  const handleDelete = async (id: string): Promise<void> => {
-    if (!confirm('Desactivar este usuario?')) return;
+  const handleDelete = async (): Promise<void> => {
+    if (!deleteId) return;
     try {
-      await api.delete(`/usuarios/${id}`);
+      await api.delete(`/usuarios/${deleteId}`);
       toast.success('Usuario desactivado');
       loadData();
     } catch {
       toast.error('Error al desactivar');
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -187,10 +205,10 @@ export function UsuariosTable(): JSX.Element {
           <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)} title="Editar">
             <Pencil className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => handleResetPassword(row.original)} title="Restablecer contrasena">
+          <Button variant="ghost" size="icon" onClick={() => setResetUser(row.original)} title="Restablecer contrasena">
             <KeyRound className="h-4 w-4 text-amber-600" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => handleDelete(row.original.id)} title="Desactivar">
+          <Button variant="ghost" size="icon" onClick={() => setDeleteId(row.original.id)} title="Desactivar">
             <Trash2 className="h-4 w-4 text-red-500" />
           </Button>
         </div>
@@ -212,8 +230,8 @@ export function UsuariosTable(): JSX.Element {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <div className="relative w-64">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+        <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             placeholder="Buscar usuarios..."
@@ -224,7 +242,7 @@ export function UsuariosTable(): JSX.Element {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button onClick={openCreate}>
+            <Button onClick={openCreate} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" /> Nuevo Usuario
             </Button>
           </DialogTrigger>
@@ -284,7 +302,7 @@ export function UsuariosTable(): JSX.Element {
         </Dialog>
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -340,6 +358,42 @@ export function UsuariosTable(): JSX.Element {
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+        onConfirm={handleDelete}
+        title="Desactivar usuario"
+        description="Este usuario sera desactivado y no podra iniciar sesion. Puedes reactivarlo despues."
+        confirmLabel="Desactivar"
+      />
+
+      <AlertDialog open={!!resetUser} onOpenChange={(open) => { if (!open) { setResetUser(null); setNewPassword(''); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restablecer contrasena</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ingresa la nueva contrasena para {resetUser?.nombre}. Minimo 6 caracteres.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            type="password"
+            placeholder="Nueva contrasena"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={handleResetPassword}
+              disabled={newPassword.length < 6}
+            >
+              Restablecer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

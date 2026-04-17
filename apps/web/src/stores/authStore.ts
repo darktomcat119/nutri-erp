@@ -18,7 +18,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   login: async (email: string, password: string): Promise<void> => {
     const response = await api.post('/auth/login', { email, password });
-    const { access_token, user } = response.data.data;
+    // Axios interceptor unwraps { data, message: "Success" }, so response.data is the controller payload directly.
+    const payload = (response.data?.data ?? response.data) as { access_token: string; user: User };
+    const { access_token, user } = payload;
+    if (!access_token) throw new Error('Login response missing access_token');
     localStorage.setItem('nutri_token', access_token);
     set({ token: access_token, user, isLoading: false });
   },
@@ -37,7 +40,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         return;
       }
       const response = await api.get('/auth/me');
-      set({ user: response.data.data, isLoading: false });
+      const user = (response.data?.data ?? response.data) as User;
+      set({ user, isLoading: false });
     } catch {
       localStorage.removeItem('nutri_token');
       set({ user: null, token: null, isLoading: false });

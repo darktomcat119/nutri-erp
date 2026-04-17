@@ -1,9 +1,10 @@
+import { PageHeader } from '@/components/page-header';
 import { ProveedoresTable } from '@/features/proveedores/components/ProveedoresTable';
 
 export default function ProveedoresPage(): JSX.Element {
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Proveedores</h1>
+      <PageHeader title="Proveedores" description="Gestion de proveedores y rutas de compra" />
       <ProveedoresTable />
     </div>
   );

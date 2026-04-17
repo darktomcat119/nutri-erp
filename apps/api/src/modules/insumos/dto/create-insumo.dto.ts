@@ -1,10 +1,11 @@
-import { IsString, IsOptional, IsNumber, Min, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsInt, Min, IsUUID } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateInsumoDto {
-  @ApiProperty({ example: 'IN-016' })
+  @ApiPropertyOptional({ example: 'IN-016' })
+  @IsOptional()
   @IsString()
-  codigo: string;
+  codigo?: string;
 
   @ApiProperty({ example: 'PAPA' })
   @IsString()
@@ -32,4 +33,15 @@ export class CreateInsumoDto {
   @ApiProperty()
   @IsUUID()
   proveedorId: string;
+
+  @ApiPropertyOptional({ example: 6 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  cantidadPorDisplay?: number;
+
+  @ApiPropertyOptional({ example: 'Nacional' })
+  @IsOptional()
+  @IsString()
+  origen?: string;
 }

@@ -35,6 +35,21 @@ export class CreateRequisicionDto {
   @IsString()
   semana: string;
 
+  @ApiPropertyOptional({ enum: AreaCompra, default: 'INS' })
+  @IsOptional()
+  @IsEnum(AreaCompra)
+  area?: AreaCompra;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  presupuestoInsId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  justificacionExceso?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

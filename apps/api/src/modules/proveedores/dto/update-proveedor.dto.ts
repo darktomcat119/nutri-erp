@@ -32,4 +32,9 @@ export class UpdateProveedorDto {
   @IsOptional()
   @IsBoolean()
   activo?: boolean;
+
+  @ApiPropertyOptional({ example: 'Centro Norte' })
+  @IsOptional()
+  @IsString()
+  centroCompras?: string;
 }

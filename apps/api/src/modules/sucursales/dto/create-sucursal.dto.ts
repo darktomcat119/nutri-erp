@@ -1,14 +1,19 @@
-import { IsString, MinLength } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsString, MinLength, IsOptional } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateSucursalDto {
-  @ApiProperty({ example: 'CDUP' })
+  @ApiProperty({ example: 'IPADE' })
   @IsString()
   @MinLength(2)
   codigo: string;
 
-  @ApiProperty({ example: 'Campus Deportivo Universitario Poniente' })
+  @ApiProperty({ example: 'Nutri Cafeteria - Ciudad UP - IPADE' })
   @IsString()
   @MinLength(3)
   nombre: string;
+
+  @ApiPropertyOptional({ example: '359', description: 'ID numerico de cafeteria en OrderEat' })
+  @IsOptional()
+  @IsString()
+  cafeteriaId?: string;
 }

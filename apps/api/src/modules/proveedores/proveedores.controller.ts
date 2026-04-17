@@ -17,10 +17,11 @@ export class ProveedoresController {
   constructor(private proveedoresService: ProveedoresService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Listar proveedores activos' })
+  @ApiOperation({ summary: 'Listar proveedores' })
   @ApiQuery({ name: 'categoria', required: false })
-  async findAll(@Query('categoria') categoria?: string) {
-    return this.proveedoresService.findAll({ categoria });
+  @ApiQuery({ name: 'activo', required: false })
+  async findAll(@Query('categoria') categoria?: string, @Query('activo') activo?: string) {
+    return this.proveedoresService.findAll({ categoria, activo });
   }
 
   @Get(':id')
@@ -43,6 +44,14 @@ export class ProveedoresController {
   @ApiOperation({ summary: 'Reordenar ruta de proveedores' })
   async reorder(@Body() dto: ReorderProveedoresDto) {
     return this.proveedoresService.reorder(dto);
+  }
+
+  @Patch(':id/toggle-activo')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Activar/desactivar proveedor' })
+  async toggleActivo(@Param('id') id: string) {
+    return this.proveedoresService.toggleActivo(id);
   }
 
   @Patch(':id')

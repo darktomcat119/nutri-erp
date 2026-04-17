@@ -11,10 +11,16 @@ export interface ApiResponse<T> {
 export class ResponseInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
   intercept(context: ExecutionContext, next: CallHandler): Observable<ApiResponse<T>> {
     return next.handle().pipe(
-      map((data) => ({
-        data,
-        message: 'Success',
-      })),
+      map((data) => {
+        // If controller already returns { data, message }, don't double-wrap
+        if (data && typeof data === 'object' && 'data' in data && 'message' in data) {
+          return data as ApiResponse<T>;
+        }
+        return {
+          data,
+          message: 'Success',
+        };
+      }),
     );
   }
 }

@@ -1,10 +1,12 @@
-import { RequisicionForm } from '@/features/requisiciones/components/RequisicionForm';
+'use client';
+import { PageHeader } from '@/components/page-header';
+import { RequisicionInsForm } from '@/features/requisiciones/components/RequisicionInsForm';
 
-export default function MiRequisicionPage(): JSX.Element {
+export default function Page() {
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Mi Requisicion</h1>
-      <RequisicionForm />
+      <PageHeader title="Mi Requisicion Insumos" description="Crear pedido semanal de insumos para tu sucursal" />
+      <RequisicionInsForm />
     </div>
   );
 }

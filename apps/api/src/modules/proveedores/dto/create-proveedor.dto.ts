@@ -26,4 +26,9 @@ export class CreateProveedorDto {
   @IsInt()
   @Min(0)
   ordenRuta?: number;
+
+  @ApiPropertyOptional({ example: 'Centro Norte' })
+  @IsOptional()
+  @IsString()
+  centroCompras?: string;
 }

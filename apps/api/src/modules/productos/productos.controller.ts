@@ -1,6 +1,8 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Res, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { Role } from '@prisma/client';
 import { ProductosService } from './productos.service';
 import { CreateProductoDto } from './dto/create-producto.dto';
@@ -24,6 +26,35 @@ export class ProductosController {
     @Query('proveedorId') proveedorId?: string,
   ) {
     return this.productosService.findAll({ categoria, proveedorId });
+  }
+
+  @Get('next-code')
+  @ApiOperation({ summary: 'Obtener siguiente codigo auto-generado' })
+  async getNextCode() {
+    return this.productosService.getNextCode();
+  }
+
+  @Get('export-excel')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Exportar productos a Excel' })
+  async exportExcel(@Res() res: Response) {
+    const buffer = await this.productosService.exportExcel();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename=productos_mos.xlsx',
+    });
+    res.send(buffer);
+  }
+
+  @Post('import-excel')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Importar productos desde Excel' })
+  async importExcel(@UploadedFile() file: Express.Multer.File) {
+    return this.productosService.importExcel(file.buffer);
   }
 
   @Get(':id')

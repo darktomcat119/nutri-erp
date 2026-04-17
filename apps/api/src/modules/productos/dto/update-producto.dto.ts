@@ -59,4 +59,9 @@ export class UpdateProductoDto {
   @IsOptional()
   @IsBoolean()
   activo?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  origen?: string;
 }

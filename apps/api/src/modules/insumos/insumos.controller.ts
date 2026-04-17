@@ -1,6 +1,8 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Res, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { Role } from '@prisma/client';
 import { InsumosService } from './insumos.service';
 import { CreateInsumoDto } from './dto/create-insumo.dto';
@@ -21,6 +23,33 @@ export class InsumosController {
   @ApiQuery({ name: 'proveedorId', required: false })
   async findAll(@Query('categoria') categoria?: string, @Query('proveedorId') proveedorId?: string) {
     return this.insumosService.findAll({ categoria, proveedorId });
+  }
+
+  @Get('next-code')
+  @ApiOperation({ summary: 'Obtener siguiente codigo auto-generado' })
+  async getNextCode() { return this.insumosService.getNextCode(); }
+
+  @Get('export-excel')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Exportar insumos a Excel' })
+  async exportExcel(@Res() res: Response) {
+    const buffer = await this.insumosService.exportExcel();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename=insumos.xlsx',
+    });
+    res.send(buffer);
+  }
+
+  @Post('import-excel')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Importar insumos desde Excel' })
+  async importExcel(@UploadedFile() file: Express.Multer.File) {
+    return this.insumosService.importExcel(file.buffer);
   }
 
   @Get(':id')

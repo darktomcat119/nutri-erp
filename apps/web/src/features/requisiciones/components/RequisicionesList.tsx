@@ -10,9 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, X, Eye } from 'lucide-react';
+import { Check, X, Eye, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Requisicion {
   id: string; semana: string; estado: string; notas: string | null; createdAt: string;
@@ -44,6 +46,8 @@ export function RequisicionesList(): JSX.Element {
   const [estado, setEstado] = useState('');
   const [detail, setDetail] = useState<ReqDetail | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [rejectId, setRejectId] = useState<string | null>(null);
+  const [rejectNotas, setRejectNotas] = useState('');
 
   const load = useCallback(async (): Promise<void> => {
     try {
@@ -69,11 +73,15 @@ export function RequisicionesList(): JSX.Element {
     catch { toast.error('Error al aprobar'); }
   };
 
-  const reject = async (id: string): Promise<void> => {
-    const notas = prompt('Motivo del rechazo:');
-    if (notas === null) return;
-    try { await api.post(`/requisiciones/${id}/rechazar`, { notas }); toast.success('Requisicion rechazada'); load(); setDetailOpen(false); }
-    catch { toast.error('Error al rechazar'); }
+  const reject = async (): Promise<void> => {
+    if (!rejectId) return;
+    try {
+      await api.post(`/requisiciones/${rejectId}/rechazar`, { notas: rejectNotas });
+      toast.success('Requisicion rechazada');
+      load();
+      setDetailOpen(false);
+    } catch { toast.error('Error al rechazar'); }
+    finally { setRejectId(null); setRejectNotas(''); }
   };
 
   const columns: ColumnDef<Requisicion>[] = [
@@ -97,7 +105,7 @@ export function RequisicionesList(): JSX.Element {
           {row.original.estado === 'ENVIADA' && (
             <>
               <Button variant="ghost" size="icon" onClick={() => approve(row.original.id)}><Check className="h-4 w-4 text-emerald-600" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => reject(row.original.id)}><X className="h-4 w-4 text-red-600" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => setRejectId(row.original.id)}><X className="h-4 w-4 text-red-600" /></Button>
             </>
           )}
         </div>
@@ -109,10 +117,10 @@ export function RequisicionesList(): JSX.Element {
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-4">
-        <Input placeholder="Semana (ej: 2026-W12)" value={semana} onChange={(e) => setSemana(e.target.value)} className="w-48" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 mb-4">
+        <Input placeholder="Semana (ej: 2026-W12)" value={semana} onChange={(e) => setSemana(e.target.value)} className="w-full sm:w-48" />
         <Select value={estado} onValueChange={setEstado}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Todos los estados" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Todos los estados" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="BORRADOR">Borrador</SelectItem>
@@ -121,18 +129,18 @@ export function RequisicionesList(): JSX.Element {
             <SelectItem value="RECHAZADA">Rechazada</SelectItem>
           </SelectContent>
         </Select>
-        <p className="text-sm text-slate-500 ml-auto">{data.length} requisiciones</p>
+        <p className="text-sm text-slate-500 sm:ml-auto">{data.length} requisiciones</p>
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>{table.getHeaderGroups().map((hg) => <TableRow key={hg.id}>{hg.headers.map((h) => <TableHead key={h.id}>{flexRender(h.column.columnDef.header, h.getContext())}</TableHead>)}</TableRow>)}</TableHeader>
-          <TableBody>{table.getRowModel().rows.length ? table.getRowModel().rows.map((row) => <TableRow key={row.id}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>) : <TableRow><TableCell colSpan={columns.length} className="h-24 text-center text-slate-500">No hay requisiciones</TableCell></TableRow>}</TableBody>
+          <TableBody>{table.getRowModel().rows.length ? table.getRowModel().rows.map((row) => <TableRow key={row.id}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>) : <TableRow><TableCell colSpan={columns.length} className="h-32 text-center"><div className="flex flex-col items-center gap-2 text-slate-400"><FileText className="h-8 w-8" /><p className="text-sm font-medium">No hay requisiciones</p><p className="text-xs">Las requisiciones de los encargados aparecen aqui</p></div></TableCell></TableRow>}</TableBody>
         </Table>
       </div>
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader><DialogTitle>Requisicion — {detail?.sucursal.codigo} — {detail?.semana}</DialogTitle></DialogHeader>
           {detail && (
             <div className="space-y-4">
@@ -140,7 +148,7 @@ export function RequisicionesList(): JSX.Element {
                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${estadoBadge[detail.estado] || ''}`}>{detail.estado}</span>
                 {detail.notas && <p className="text-sm text-slate-500">Notas: {detail.notas}</p>}
               </div>
-              <div className="rounded-md border">
+              <div className="rounded-md border overflow-x-auto">
                 <Table>
                   <TableHeader><TableRow><TableHead>Area</TableHead><TableHead>Producto/Insumo</TableHead><TableHead>Cantidad</TableHead><TableHead>Notas</TableHead></TableRow></TableHeader>
                   <TableBody>
@@ -157,7 +165,7 @@ export function RequisicionesList(): JSX.Element {
               </div>
               {detail.estado === 'ENVIADA' && (
                 <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={() => reject(detail.id)} className="text-red-600">Rechazar</Button>
+                  <Button variant="outline" onClick={() => setRejectId(detail.id)} className="text-red-600">Rechazar</Button>
                   <Button onClick={() => approve(detail.id)} className="bg-emerald-600 hover:bg-emerald-700">Aprobar</Button>
                 </div>
               )}
@@ -165,6 +173,29 @@ export function RequisicionesList(): JSX.Element {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!rejectId} onOpenChange={(open) => { if (!open) { setRejectId(null); setRejectNotas(''); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rechazar Requisicion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ingresa el motivo del rechazo. El encargado vera esta nota.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            placeholder="Motivo del rechazo..."
+            value={rejectNotas}
+            onChange={(e) => setRejectNotas(e.target.value)}
+            className="min-h-[80px]"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700 text-white" onClick={reject}>
+              Rechazar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class AuthService {
@@ -57,6 +58,21 @@ export class AuthService {
     }
     const { passwordHash, ...result } = user;
     return result;
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const data: Record<string, string> = {};
+    if (dto.nombre) data.nombre = dto.nombre;
+    if (dto.email) data.email = dto.email;
+
+    const updated = await this.prisma.usuario.update({
+      where: { id: userId },
+      data,
+      include: { sucursal: true },
+    });
+
+    const { passwordHash, ...result } = updated;
+    return { data: result, message: 'Perfil actualizado' };
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto): Promise<{ message: string }> {
