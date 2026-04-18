@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelectEmpty } from '@/components/ui/select-empty';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -251,9 +252,17 @@ function AdminView({ canApprove }: { canApprove: boolean }): JSX.Element {
                   <SelectValue placeholder="Seleccionar sucursal..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {sucursales.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.codigo} - {s.nombre}</SelectItem>
-                  ))}
+                  {sucursales.length === 0 ? (
+                    <SelectEmpty
+                      icon={Package}
+                      label="No hay sucursales activas"
+                      hint="Crea una sucursal en Catalogos > Sucursales antes de generar requisiciones MOS."
+                    />
+                  ) : (
+                    sucursales.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.codigo} - {s.nombre}</SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

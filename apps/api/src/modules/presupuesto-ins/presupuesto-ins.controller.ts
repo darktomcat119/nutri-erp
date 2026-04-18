@@ -30,7 +30,7 @@ export class PresupuestoInsController {
 
   @Post('generar')
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Generar presupuesto INS desde Excel de ventas' })
@@ -57,7 +57,7 @@ export class PresupuestoInsController {
 
   @Post('generar-live')
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @ApiOperation({ summary: 'Generar presupuesto INS desde ventas live de OrderEat' })
   async generarLive(
     @Body('sucursalId') sucursalId: string,

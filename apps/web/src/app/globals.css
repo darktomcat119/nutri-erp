@@ -82,6 +82,17 @@
     }
   }
 
+  /* Top progress bar animation (route transitions) */
+  .animate-topbar-progress {
+    animation: topbar-progress 600ms ease-out forwards;
+  }
+  @keyframes topbar-progress {
+    0%   { width: 0%;   opacity: 1; }
+    40%  { width: 65%;  opacity: 1; }
+    80%  { width: 90%;  opacity: 1; }
+    100% { width: 100%; opacity: 0; }
+  }
+
   /* Shimmer loading effect */
   .shimmer {
     background: linear-gradient(

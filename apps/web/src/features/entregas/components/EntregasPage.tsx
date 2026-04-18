@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, Plus, Loader2, Truck, FileDown } from 'lucide-react';
+import { SelectEmpty } from '@/components/ui/select-empty';
+import { Eye, Plus, Loader2, Truck, FileDown, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -152,16 +153,24 @@ export function EntregasPage(): JSX.Element {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="space-y-1 w-full sm:w-auto">
                 <label className="text-xs text-slate-500">Orden de Compra Completada</label>
-                <Select value={selectedOcId} onValueChange={setSelectedOcId}>
+                <Select value={selectedOcId} onValueChange={setSelectedOcId} disabled={ocsCompletadas.length === 0}>
                   <SelectTrigger className="w-full sm:w-72 min-h-[44px]">
-                    <SelectValue placeholder="Seleccionar OC completada" />
+                    <SelectValue placeholder={ocsCompletadas.length === 0 ? 'Sin OCs completadas' : 'Seleccionar OC completada'} />
                   </SelectTrigger>
                   <SelectContent>
-                    {ocsCompletadas.map((oc) => (
-                      <SelectItem key={oc.id} value={oc.id}>
-                        {oc.folio} — {oc.semana}
-                      </SelectItem>
-                    ))}
+                    {ocsCompletadas.length === 0 ? (
+                      <SelectEmpty
+                        icon={ShoppingCart}
+                        label="No hay OCs completadas"
+                        hint="Una orden de compra debe estar en estado COMPLETADA antes de poder generar entregas."
+                      />
+                    ) : (
+                      ocsCompletadas.map((oc) => (
+                        <SelectItem key={oc.id} value={oc.id}>
+                          {oc.folio} — {oc.semana}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>

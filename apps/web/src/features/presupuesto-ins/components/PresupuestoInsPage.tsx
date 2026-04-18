@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelectEmpty } from '@/components/ui/select-empty';
 import { Textarea } from '@/components/ui/textarea';
 import { DollarSign, Upload, Eye, Check, X, Loader2, AlertTriangle, FileText, Zap } from 'lucide-react';
 import { toast } from 'sonner';
@@ -313,11 +314,19 @@ export function PresupuestoInsPage(): JSX.Element {
                   <SelectValue placeholder="Selecciona sucursal" />
                 </SelectTrigger>
                 <SelectContent>
-                  {sucursales.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.codigo} - {s.nombre}
-                    </SelectItem>
-                  ))}
+                  {sucursales.length === 0 ? (
+                    <SelectEmpty
+                      icon={DollarSign}
+                      label="No hay sucursales activas"
+                      hint="Crea una sucursal antes de generar presupuestos INS."
+                    />
+                  ) : (
+                    sucursales.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.codigo} - {s.nombre}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

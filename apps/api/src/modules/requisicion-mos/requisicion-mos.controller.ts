@@ -28,7 +28,7 @@ export class RequisicionMosController {
 
   @Post('generar')
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Generar requisicion MOS desde Excel de inventario' })
@@ -50,7 +50,7 @@ export class RequisicionMosController {
 
   @Post('generar-live')
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @ApiOperation({ summary: 'Generar requisicion MOS desde inventario live de OrderEat' })
   async generarLive(
     @Body('sucursalId') sucursalId: string,

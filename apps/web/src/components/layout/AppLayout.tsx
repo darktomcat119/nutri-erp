@@ -1,13 +1,19 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { Sidebar } from './Sidebar';
+import { Header } from './Header';
+import { TopProgressBar } from './TopProgressBar';
+import { cn } from '@/lib/utils';
+import { Suspense } from 'react';
 
 export function AppLayout({ children }: { children: React.ReactNode }): JSX.Element {
   const router = useRouter();
   const { user, isLoading, loadUser } = useAuthStore();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -39,12 +45,28 @@ export function AppLayout({ children }: { children: React.ReactNode }): JSX.Elem
 
   return (
     <div className="min-h-screen bg-[#f1f3f8]">
-      <Sidebar />
-      <main className="min-h-screen pt-18 md:pt-0 md:ml-[260px] transition-all duration-300">
-        <div className="p-4 sm:p-6 lg:p-8 animate-in-page">
-          {children}
-        </div>
-      </main>
+      <Suspense fallback={null}>
+        <TopProgressBar />
+      </Suspense>
+      <Sidebar
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+        collapsed={collapsed}
+        onCollapsedChange={setCollapsed}
+      />
+      <div
+        className={cn(
+          'min-h-screen transition-all duration-300',
+          collapsed ? 'md:ml-[68px]' : 'md:ml-[260px]',
+        )}
+      >
+        <Header onMobileMenuClick={() => setMobileOpen(true)} />
+        <main>
+          <div className="p-4 sm:p-6 lg:p-8 animate-in-page">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

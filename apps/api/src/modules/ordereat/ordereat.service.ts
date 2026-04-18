@@ -248,6 +248,113 @@ export class OrdereatService {
   }
 
   /**
+   * Import all products from OrderEat for a sucursal into the local Producto catalog.
+   * Upserts (codigo="OE-{codigo}-{id}") and creates ConfigSucursalProducto with defaults.
+   * Returns counts: { created, updated, total, skipped }
+   */
+  async importProductsFromOrderEat(sucursalId: string): Promise<{
+    data: {
+      sucursalCodigo: string;
+      total: number;
+      created: number;
+      updated: number;
+      skipped: number;
+      skippedReasons: Array<{ name: string; reason: string }>;
+    };
+    message: string;
+  }> {
+    const { cafeteriaId, token } = await this.resolveAuthForSucursal(sucursalId);
+    const suc = await this.prisma.sucursal.findUnique({ where: { id: sucursalId }, select: { codigo: true } });
+    if (!suc) throw new NotFoundException('Sucursal no encontrada');
+
+    type OeProduct = {
+      id: number; name: string; price: number; cost: number | null;
+      currentStock: number | null; status: string;
+    };
+    const products = await this.apiGet<OeProduct[]>(token, `/cafeterias/${cafeteriaId}/products`);
+    const enabled = products.filter(p => p.status === 'ENABLED' && p.currentStock !== null);
+
+    // Default provider (auto-create if needed)
+    let defaultProv = await this.prisma.proveedor.findFirst({ where: { nombre: 'OrderEat (Auto)' } });
+    if (!defaultProv) {
+      defaultProv = await this.prisma.proveedor.create({
+        data: { nombre: 'OrderEat (Auto)', categoria: 'Auto', ordenRuta: 1 },
+      });
+    }
+
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+    const skippedReasons: Array<{ name: string; reason: string }> = [];
+
+    for (const p of enabled) {
+      const codigo = `OE-${suc.codigo}-${p.id}`;
+      const costoUnitario = Number(p.cost) > 0 ? Number(p.cost) : Number(p.price) * 0.5;
+      const pzXDisplay = 24;
+      const costoDisplay = Math.round(costoUnitario * pzXDisplay * 100) / 100;
+
+      if (!(costoUnitario > 0)) {
+        skipped++;
+        skippedReasons.push({ name: p.name, reason: 'precio/costo invalidos' });
+        continue;
+      }
+
+      const existing = await this.prisma.producto.findUnique({ where: { codigo } });
+      const producto = existing
+        ? await this.prisma.producto.update({
+            where: { codigo },
+            data: {
+              nombre: p.name,
+              nombreSistema: p.name,
+              ordereatId: String(p.id),
+              costoUnitario: costoUnitario.toFixed(2),
+              costoDisplay: costoDisplay.toFixed(2),
+            },
+          })
+        : await this.prisma.producto.create({
+            data: {
+              codigo,
+              nombre: p.name,
+              nombreSistema: p.name,
+              ordereatId: String(p.id),
+              costoUnitario: costoUnitario.toFixed(2),
+              costoDisplay: costoDisplay.toFixed(2),
+              pzXDisplay,
+              proveedorId: defaultProv.id,
+            },
+          });
+      if (existing) updated++;
+      else created++;
+
+      // Upsert config with reasonable maxSemanal (2x currentStock, min 24)
+      const maxSemanal = Math.max(Number(p.currentStock) * 2, 24);
+      await this.prisma.configSucursalProducto.upsert({
+        where: { sucursalId_productoId: { sucursalId, productoId: producto.id } },
+        update: { maxSemanal, precioVenta: p.price },
+        create: {
+          sucursalId,
+          productoId: producto.id,
+          maxSemanal,
+          precioVenta: p.price,
+          activo: true,
+        },
+      });
+    }
+
+    return {
+      data: {
+        sucursalCodigo: suc.codigo,
+        total: enabled.length,
+        created,
+        updated,
+        skipped,
+        skippedReasons: skippedReasons.slice(0, 20),
+      },
+      message: `${suc.codigo}: ${created} creados, ${updated} actualizados, ${skipped} omitidos`,
+    };
+  }
+
+  /**
    * Parse OrderEat Sales Report Excel
    * Returns: array of { producto, cantidadVendida, precioUnitario, costoUnitario, totalVendido }
    */

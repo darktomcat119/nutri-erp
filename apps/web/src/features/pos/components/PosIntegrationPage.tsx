@@ -14,8 +14,9 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { SelectEmpty } from '@/components/ui/select-empty';
 import {
-  Upload, Download, FileSpreadsheet, Package, Loader2, AlertTriangle,
+  Upload, Download, FileSpreadsheet, Package, Loader2, AlertTriangle, Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -112,7 +113,10 @@ function ImportarInventarioTab(): JSX.Element {
 
   // Load sucursales
   useEffect(() => {
-    api.get('/sucursales').then((r) => setSucursales(r.data)).catch(() => {
+    api.get('/sucursales').then((r) => {
+      const arr = Array.isArray(r.data?.data) ? r.data.data : Array.isArray(r.data) ? r.data : [];
+      setSucursales(arr);
+    }).catch(() => {
       toast.error('Error al cargar sucursales');
     });
   }, []);
@@ -125,8 +129,9 @@ function ImportarInventarioTab(): JSX.Element {
     }
     setLoadingInv(true);
     try {
-      const { data } = await api.get(`/pos/inventario/${sucursalId}`);
-      setInventario(data);
+      const r = await api.get(`/pos/inventario/${sucursalId}`);
+      const arr = Array.isArray(r.data?.data) ? r.data.data : Array.isArray(r.data) ? r.data : [];
+      setInventario(arr);
     } catch {
       toast.error('Error al cargar inventario');
     } finally {
@@ -154,9 +159,10 @@ function ImportarInventarioTab(): JSX.Element {
       formData.append('file', file);
       formData.append('sucursalId', selectedSucursal);
 
-      const { data } = await api.post('/pos/importar-inventario', formData, {
+      const r = await api.post('/pos/importar-inventario', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+      const data = (r.data?.data ?? r.data) as ImportResult;
 
       setImportResult(data);
       toast.success(`Importacion completada: ${data.matched} productos vinculados`);
@@ -193,11 +199,19 @@ function ImportarInventarioTab(): JSX.Element {
                   <SelectValue placeholder="Seleccionar sucursal" />
                 </SelectTrigger>
                 <SelectContent>
-                  {sucursales.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.codigo} - {s.nombre}
-                    </SelectItem>
-                  ))}
+                  {sucursales.length === 0 ? (
+                    <SelectEmpty
+                      icon={Building2}
+                      label="No hay sucursales activas"
+                      hint="Crea una sucursal en Catalogos > Sucursales."
+                    />
+                  ) : (
+                    sucursales.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.codigo} - {s.nombre}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -326,8 +340,9 @@ function GenerarCargaTab(): JSX.Element {
   const loadOrdenes = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/ordenes-entrega');
-      setOrdenes(data);
+      const r = await api.get('/ordenes-entrega');
+      const arr = Array.isArray(r.data?.data) ? r.data.data : Array.isArray(r.data) ? r.data : [];
+      setOrdenes(arr);
     } catch {
       toast.error('Error al cargar ordenes de entrega');
     } finally {
@@ -342,7 +357,8 @@ function GenerarCargaTab(): JSX.Element {
   const handleGenerar = async (ordenId: string): Promise<void> => {
     setGeneratingId(ordenId);
     try {
-      const { data } = await api.post<GenerarResult>(`/pos/generar-carga/${ordenId}`);
+      const r = await api.post(`/pos/generar-carga/${ordenId}`);
+      const data = (r.data?.data ?? r.data) as GenerarResult;
       toast.success(
         `Carga POS generada: ${data.totalItems} items, ${data.totalPiezas} piezas. El archivo esta listo para descarga en Historial.`
       );
@@ -425,7 +441,10 @@ function HistorialTab(): JSX.Element {
 
   useEffect(() => {
     api.get('/pos/uploads')
-      .then((r) => setUploads(r.data))
+      .then((r) => {
+        const arr = Array.isArray(r.data?.data) ? r.data.data : Array.isArray(r.data) ? r.data : [];
+        setUploads(arr);
+      })
       .catch(() => toast.error('Error al cargar historial'))
       .finally(() => setLoading(false));
   }, []);

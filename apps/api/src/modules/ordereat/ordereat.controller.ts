@@ -123,6 +123,14 @@ export class OrdereatController {
     return this.ordereatService.getSalesForSucursal(sucursalId, from, until);
   }
 
+  @Post('api/import-products/:sucursalId')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Importar productos de OrderEat al catalogo local (upsert)' })
+  async importProductsFromOrderEat(@Param('sucursalId') sucursalId: string) {
+    return this.ordereatService.importProductsFromOrderEat(sucursalId);
+  }
+
   @Get('api/stock-history/:sucursalId')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)

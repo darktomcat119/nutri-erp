@@ -128,26 +128,30 @@ export function PlatillosTable(): JSX.Element {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-slate-500">{data.length} platillos</p>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <Button onClick={handleExport} variant="outline" className="w-full sm:w-auto bg-green-50 text-green-700 border-green-300 hover:bg-green-100">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <p className="text-sm text-slate-500">{data.length} {data.length === 1 ? 'platillo' : 'platillos'}</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button onClick={handleExport} variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
             <Download className="h-4 w-4 mr-2" /> Exportar Excel
           </Button>
-          <Button variant="outline" className="w-full sm:w-auto" onClick={() => fileInputRef.current?.click()}>
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
             <Upload className="h-4 w-4 mr-2" /> Importar Excel
           </Button>
           <input type="file" ref={fileInputRef} accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
-          <DialogTrigger asChild><Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> Nuevo Platillo</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>{editing ? 'Editar Platillo' : 'Nuevo Platillo'}</DialogTitle></DialogHeader>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2"><Label>Nombre</Label><Input {...register('nombre')} />{errors.nombre && <p className="text-xs text-red-600">{errors.nombre.message}</p>}</div>
-              <div className="space-y-2"><Label>Costo por platillo</Label><Input type="number" step="0.01" {...register('costo', { valueAsNumber: true })} /></div>
-              <Button type="submit" className="w-full">{editing ? 'Actualizar' : 'Crear'}</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openCreate} className="shadow-sm"><Plus className="h-4 w-4 mr-2" /> Nuevo Platillo</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>{editing ? 'Editar Platillo' : 'Nuevo Platillo'}</DialogTitle></DialogHeader>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-2"><Label>Nombre</Label><Input {...register('nombre')} />{errors.nombre && <p className="text-xs text-red-600">{errors.nombre.message}</p>}</div>
+                <div className="space-y-2"><Label>Costo por platillo</Label><Input type="number" step="0.01" {...register('costo', { valueAsNumber: true })} /></div>
+                <Button type="submit" className="w-full">{editing ? 'Actualizar' : 'Crear'}</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
       <div className="rounded-md border overflow-x-auto">
         <Table>

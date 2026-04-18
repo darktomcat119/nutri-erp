@@ -1,12 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-  type ColumnDef,
-} from '@tanstack/react-table';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,13 +11,11 @@ import { Label } from '@/components/ui/label';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Plus, PowerOff, Power } from 'lucide-react';
+import { Pencil, Plus, PowerOff, Power, Building2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { DataTableShell } from '@/components/ui/data-table-shell';
 
 interface Sucursal {
   id: string;
@@ -43,8 +35,10 @@ type FormData = z.infer<typeof schema>;
 
 export function SucursalesTable(): JSX.Element {
   const [data, setData] = useState<Sucursal[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Sucursal | null>(null);
+  const [saving, setSaving] = useState(false);
   const [deactivateId, setDeactivateId] = useState<string | null>(null);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
@@ -52,11 +46,14 @@ export function SucursalesTable(): JSX.Element {
   });
 
   const load = useCallback(async (): Promise<void> => {
+    setLoading(true);
     try {
       const res = await api.get('/sucursales');
       setData(res.data.data);
     } catch {
       toast.error('Error al cargar sucursales');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -80,6 +77,7 @@ export function SucursalesTable(): JSX.Element {
       nombre: formData.nombre,
       cafeteriaId: formData.cafeteriaId?.trim() || null,
     };
+    setSaving(true);
     try {
       if (editing) {
         await api.patch(`/sucursales/${editing.id}`, payload);
@@ -92,6 +90,8 @@ export function SucursalesTable(): JSX.Element {
       load();
     } catch {
       toast.error('Error al guardar');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -111,72 +111,15 @@ export function SucursalesTable(): JSX.Element {
     setDeactivateId(null);
   };
 
-  const columns: ColumnDef<Sucursal>[] = [
-    { accessorKey: 'codigo', header: 'Codigo' },
-    { accessorKey: 'nombre', header: 'Nombre' },
-    {
-      accessorKey: 'cafeteriaId',
-      header: 'OrderEat ID',
-      cell: ({ row }) => row.original.cafeteriaId
-        ? <span className="text-sm font-mono">{row.original.cafeteriaId}</span>
-        : <span className="text-xs text-slate-400">—</span>,
-    },
-    {
-      accessorKey: 'activa',
-      header: 'Estado',
-      cell: ({ row }) => (
-        <Badge
-          variant={row.original.activa ? 'default' : 'destructive'}
-          className={row.original.activa ? 'bg-green-600 hover:bg-green-700' : ''}
-        >
-          {row.original.activa ? 'Activa' : 'Inactiva'}
-        </Badge>
-      ),
-    },
-    {
-      id: 'actions',
-      header: 'Acciones',
-      cell: ({ row }) => {
-        const s = row.original;
-        return (
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" onClick={() => openEdit(s)}>
-              <Pencil className="h-4 w-4" />
-            </Button>
-            {s.activa ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setDeactivateId(s.id)}
-                title="Desactivar"
-              >
-                <PowerOff className="h-4 w-4 text-red-500" />
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleToggleActivo(s.id)}
-                title="Activar"
-              >
-                <Power className="h-4 w-4 text-green-500" />
-              </Button>
-            )}
-          </div>
-        );
-      },
-    },
-  ];
-
-  const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
-
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-slate-500">{data.length} sucursales</p>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-500">
+          {loading ? 'Cargando...' : `${data.length} ${data.length === 1 ? 'sucursal' : 'sucursales'}`}
+        </p>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button onClick={openCreate}>
+            <Button onClick={openCreate} className="shadow-sm">
               <Plus className="h-4 w-4 mr-2" /> Nueva Sucursal
             </Button>
           </DialogTrigger>
@@ -187,7 +130,7 @@ export function SucursalesTable(): JSX.Element {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label>Codigo</Label>
-                <Input {...register('codigo')} placeholder="IPADE" />
+                <Input {...register('codigo')} placeholder="IPADE" autoFocus />
                 {errors.codigo && <p className="text-xs text-red-600">{errors.codigo.message}</p>}
               </div>
               <div className="space-y-2">
@@ -198,9 +141,10 @@ export function SucursalesTable(): JSX.Element {
               <div className="space-y-2">
                 <Label>OrderEat Cafeteria ID <span className="text-xs text-slate-400">(opcional)</span></Label>
                 <Input {...register('cafeteriaId')} placeholder="359" inputMode="numeric" />
-                <p className="text-xs text-slate-400">ID numerico de la cafeteria en OrderEat. Requerido para sincronizar inventario/ventas.</p>
+                <p className="text-xs text-slate-400">ID numerico en OrderEat. Requerido para sincronizar inventario/ventas.</p>
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={saving}>
+                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {editing ? 'Actualizar' : 'Crear'}
               </Button>
             </form>
@@ -208,46 +152,78 @@ export function SucursalesTable(): JSX.Element {
         </Dialog>
       </div>
 
-      <div className="rounded-md border overflow-x-auto">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id}>
-                {hg.headers.map((h) => (
-                  <TableHead key={h.id}>
-                    {flexRender(h.column.columnDef.header, h.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className={!row.original.activa ? 'opacity-50 bg-gray-50' : ''}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-slate-500">
-                  No hay sucursales
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTableShell<Sucursal>
+        data={data}
+        loading={loading}
+        rowKey={(s) => s.id}
+        rowClassName={(s) => !s.activa ? 'opacity-60 bg-slate-50/60' : undefined}
+        emptyIcon={Building2}
+        emptyTitle="Sin sucursales"
+        emptyDescription="Crea tu primera sucursal para empezar a gestionar requisiciones y ordenes."
+        emptyAction={
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4 mr-2" /> Crear sucursal
+          </Button>
+        }
+        columns={[
+          { key: 'codigo', header: 'Codigo', cell: (s) => <span className="font-semibold text-slate-900">{s.codigo}</span> },
+          { key: 'nombre', header: 'Nombre', cell: (s) => s.nombre },
+          {
+            key: 'cafeteriaId',
+            header: 'OrderEat ID',
+            cell: (s) => s.cafeteriaId
+              ? <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700">{s.cafeteriaId}</span>
+              : <span className="text-xs text-slate-400">—</span>,
+          },
+          {
+            key: 'activa',
+            header: 'Estado',
+            cell: (s) => (
+              <Badge
+                variant={s.activa ? 'default' : 'destructive'}
+                className={s.activa ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0' : 'bg-slate-200 text-slate-600 border-0'}
+              >
+                {s.activa ? 'Activa' : 'Inactiva'}
+              </Badge>
+            ),
+          },
+          {
+            key: 'actions',
+            header: <span className="text-right block">Acciones</span>,
+            cellClassName: 'text-right',
+            cell: (s) => (
+              <div className="flex gap-1 justify-end">
+                <Button variant="ghost" size="icon" onClick={() => openEdit(s)} className="h-8 w-8" title="Editar">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                {s.activa ? (
+                  <Button
+                    variant="ghost" size="icon"
+                    onClick={() => setDeactivateId(s.id)}
+                    className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
+                    title="Desactivar"
+                  >
+                    <PowerOff className="h-3.5 w-3.5" />
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost" size="icon"
+                    onClick={() => handleToggleActivo(s.id)}
+                    className="h-8 w-8 hover:bg-emerald-50 hover:text-emerald-600"
+                    title="Activar"
+                  >
+                    <Power className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            ),
+          },
+        ]}
+      />
+
       <ConfirmDialog
         open={!!deactivateId}
-        onOpenChange={(open) => { if (!open) setDeactivateId(null); }}
+        onOpenChange={(openState) => { if (!openState) setDeactivateId(null); }}
         onConfirm={handleDeactivateConfirm}
         title="Desactivar sucursal"
         description="Esta sucursal sera desactivada. Puedes reactivarla despues."
