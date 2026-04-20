@@ -1,5 +1,11 @@
 import { CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -44,15 +50,30 @@ export function ProgressDialog({
   const hasError = steps?.some((s) => s.status === 'error');
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!running) onOpenChange(o); }}>
-      <DialogContent className="max-w-lg" onPointerDownOutside={(e) => { if (running) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (running) e.preventDefault(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!running) onOpenChange(o);
+      }}
+    >
+      <DialogContent
+        className="max-w-lg"
+        onPointerDownOutside={(e) => {
+          if (running) e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          if (running) e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {running
-              ? <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-              : hasError
-                ? <AlertTriangle className="h-4 w-4 text-amber-600" />
-                : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+            {running ? (
+              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+            ) : hasError ? (
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            )}
             {title}
           </DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
@@ -70,7 +91,11 @@ export function ProgressDialog({
             <div
               className={cn(
                 'h-full rounded-full transition-all duration-300 ease-out',
-                hasError ? 'bg-amber-500' : running ? 'bg-gradient-to-r from-blue-500 to-violet-500' : 'bg-emerald-500',
+                hasError
+                  ? 'bg-amber-500'
+                  : running
+                    ? 'bg-gradient-to-r from-blue-500 to-violet-500'
+                    : 'bg-emerald-500',
               )}
               style={{ width: `${computedPercent}%` }}
             />
@@ -84,22 +109,28 @@ export function ProgressDialog({
               <li key={i} className="flex items-start gap-2.5 text-[13px]">
                 <div className="mt-0.5 shrink-0">
                   {s.status === 'done' && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-                  {s.status === 'running' && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
-                  {s.status === 'pending' && <div className="h-4 w-4 rounded-full border-2 border-slate-200" />}
+                  {s.status === 'running' && (
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                  )}
+                  {s.status === 'pending' && (
+                    <div className="h-4 w-4 rounded-full border-2 border-slate-200" />
+                  )}
                   {s.status === 'error' && <XCircle className="h-4 w-4 text-red-500" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className={cn(
-                    'font-medium',
-                    s.status === 'pending' ? 'text-slate-400' :
-                    s.status === 'error' ? 'text-red-700' :
-                    'text-slate-800'
-                  )}>
+                  <div
+                    className={cn(
+                      'font-medium',
+                      s.status === 'pending'
+                        ? 'text-slate-400'
+                        : s.status === 'error'
+                          ? 'text-red-700'
+                          : 'text-slate-800',
+                    )}
+                  >
                     {s.label}
                   </div>
-                  {s.detail && (
-                    <div className="text-[11px] text-slate-500 mt-0.5">{s.detail}</div>
-                  )}
+                  {s.detail && <div className="text-[11px] text-slate-500 mt-0.5">{s.detail}</div>}
                 </div>
               </li>
             ))}
@@ -116,7 +147,12 @@ export function ProgressDialog({
         {/* Close button */}
         {!running && (
           <div className="flex justify-end pt-2 border-t border-slate-100">
-            <Button onClick={() => { onClose?.(); onOpenChange(false); }}>
+            <Button
+              onClick={() => {
+                onClose?.();
+                onOpenChange(false);
+              }}
+            >
               Cerrar
             </Button>
           </div>

@@ -134,7 +134,9 @@ export function PerfilPage(): JSX.Element {
               <p className="text-sm text-slate-500">{user.email}</p>
             </div>
             <div className="flex flex-wrap gap-2 pb-1">
-              <Badge className={`${rolColors[user.role] || 'bg-slate-100 text-slate-700'} text-sm px-3 py-1`}>
+              <Badge
+                className={`${rolColors[user.role] || 'bg-slate-100 text-slate-700'} text-sm px-3 py-1`}
+              >
                 <Shield className="h-3.5 w-3.5 mr-1.5" />
                 {rolLabels[user.role] || user.role}
               </Badge>
@@ -160,7 +162,9 @@ export function PerfilPage(): JSX.Element {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="nombre" className="text-sm">Nombre completo</Label>
+              <Label htmlFor="nombre" className="text-sm">
+                Nombre completo
+              </Label>
               <Input
                 id="nombre"
                 value={nombre}
@@ -170,7 +174,9 @@ export function PerfilPage(): JSX.Element {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm">Correo electronico</Label>
+              <Label htmlFor="email" className="text-sm">
+                Correo electronico
+              </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
@@ -212,7 +218,9 @@ export function PerfilPage(): JSX.Element {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="currentPassword" className="text-sm">Contrasena actual</Label>
+            <Label htmlFor="currentPassword" className="text-sm">
+              Contrasena actual
+            </Label>
             <div className="relative">
               <Input
                 id="currentPassword"
@@ -237,7 +245,9 @@ export function PerfilPage(): JSX.Element {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="newPassword" className="text-sm">Nueva contrasena</Label>
+              <Label htmlFor="newPassword" className="text-sm">
+                Nueva contrasena
+              </Label>
               <div className="relative">
                 <Input
                   id="newPassword"
@@ -258,7 +268,9 @@ export function PerfilPage(): JSX.Element {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-sm">Confirmar nueva contrasena</Label>
+              <Label htmlFor="confirmPassword" className="text-sm">
+                Confirmar nueva contrasena
+              </Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
@@ -282,7 +294,12 @@ export function PerfilPage(): JSX.Element {
           <div className="flex justify-end">
             <Button
               onClick={handleChangePassword}
-              disabled={savingPassword || !currentPassword || newPassword.length < 6 || newPassword !== confirmPassword}
+              disabled={
+                savingPassword ||
+                !currentPassword ||
+                newPassword.length < 6 ||
+                newPassword !== confirmPassword
+              }
               variant="outline"
               className="w-full sm:w-auto min-h-[44px] border-amber-200 text-amber-700 hover:bg-amber-50"
             >

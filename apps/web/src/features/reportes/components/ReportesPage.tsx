@@ -8,14 +8,35 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
 import {
-  BarChart3, FileText, ShoppingCart, Truck, DollarSign, Loader2, TrendingUp, TrendingDown,
+  BarChart3,
+  FileText,
+  ShoppingCart,
+  Truck,
+  DollarSign,
+  Loader2,
+  TrendingUp,
+  TrendingDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
 
 /* ---------- Types ---------- */
@@ -47,9 +68,10 @@ interface Diferencia {
 function getCurrentWeek(): string {
   const now = new Date();
   const start = new Date(now.getFullYear(), 0, 1);
-  const diff = now.getTime() - start.getTime() + (start.getTimezoneOffset() - now.getTimezoneOffset()) * 60000;
+  const diff =
+    now.getTime() - start.getTime() + (start.getTimezoneOffset() - now.getTimezoneOffset()) * 60000;
   const oneWeek = 604800000;
-  const weekNum = Math.ceil((diff / oneWeek + start.getDay() / 7));
+  const weekNum = Math.ceil(diff / oneWeek + start.getDay() / 7);
   return `${now.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
 }
 
@@ -131,12 +153,12 @@ export function ReportesPage(): JSX.Element {
                 className="w-full sm:w-48 min-h-[44px]"
               />
             </div>
-            <Button
-              onClick={load}
-              disabled={loading}
-              className="w-full sm:w-auto min-h-[44px]"
-            >
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BarChart3 className="mr-2 h-4 w-4" />}
+            <Button onClick={load} disabled={loading} className="w-full sm:w-auto min-h-[44px]">
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <BarChart3 className="mr-2 h-4 w-4" />
+              )}
               Cargar Reporte
             </Button>
           </div>
@@ -199,10 +221,19 @@ export function ReportesPage(): JSX.Element {
             <CardContent>
               <div className="overflow-x-auto">
                 <ResponsiveContainer width="100%" height={Math.max(300, gastos.length * 40)}>
-                  <BarChart data={gastos} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <BarChart
+                    data={gastos}
+                    layout="vertical"
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" tickFormatter={(v: number) => formatCurrency(v)} />
-                    <YAxis dataKey="proveedor" type="category" width={120} tick={{ fontSize: 12 }} />
+                    <YAxis
+                      dataKey="proveedor"
+                      type="category"
+                      width={120}
+                      tick={{ fontSize: 12 }}
+                    />
                     <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                     <Bar dataKey="total" fill="#3b82f6" radius={[0, 4, 4, 0]} />
                   </BarChart>
@@ -307,7 +338,8 @@ export function ReportesPage(): JSX.Element {
                         >
                           {d.diferencia < 0 && <TrendingDown className="inline h-3 w-3 mr-1" />}
                           {d.diferencia > 0 && <TrendingUp className="inline h-3 w-3 mr-1" />}
-                          {d.diferencia > 0 ? '+' : ''}{d.diferencia}
+                          {d.diferencia > 0 ? '+' : ''}
+                          {d.diferencia}
                         </span>
                       </TableCell>
                     </TableRow>
@@ -344,10 +376,17 @@ export function ReportesPage(): JSX.Element {
       {/* Empty state when no data loaded */}
       {!loading && !resumen && (
         <Card>
-          <CardContent className="py-12 text-center text-slate-500">
-            <BarChart3 className="mx-auto h-12 w-12 mb-4 text-slate-300" />
-            <p className="text-lg font-medium">Selecciona una semana y carga el reporte</p>
-            <p className="text-sm mt-1">Los datos del resumen semanal, gastos por proveedor y diferencias se mostrar&aacute;n aqu&iacute;.</p>
+          <CardContent className="flex flex-col items-center justify-center py-20 px-6 text-center text-slate-500">
+            <div className="h-14 w-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-5">
+              <BarChart3 className="h-7 w-7 text-slate-400" />
+            </div>
+            <p className="text-base font-semibold text-slate-800 mb-1.5">
+              Selecciona una semana y carga el reporte
+            </p>
+            <p className="text-sm max-w-md">
+              Los datos del resumen semanal, gastos por proveedor y diferencias se mostrar&aacute;n
+              aqu&iacute;.
+            </p>
           </CardContent>
         </Card>
       )}

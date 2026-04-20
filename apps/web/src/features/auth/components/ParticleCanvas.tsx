@@ -76,7 +76,7 @@ export function ParticleCanvas(): JSX.Element {
         const mdy = p.y - MOUSE.y;
         const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
         if (mDist < MOUSE_RADIUS && mDist > 0) {
-          const force = (MOUSE_RADIUS - mDist) / MOUSE_RADIUS * 0.02;
+          const force = ((MOUSE_RADIUS - mDist) / MOUSE_RADIUS) * 0.02;
           p.vx += (mdx / mDist) * force;
           p.vy += (mdy / mDist) * force;
         }
@@ -105,8 +105,12 @@ export function ParticleCanvas(): JSX.Element {
       // Mouse glow
       if (MOUSE.x > 0 && MOUSE.y > 0) {
         const gradient = ctx.createRadialGradient(
-          MOUSE.x, MOUSE.y, 0,
-          MOUSE.x, MOUSE.y, MOUSE_RADIUS
+          MOUSE.x,
+          MOUSE.y,
+          0,
+          MOUSE.x,
+          MOUSE.y,
+          MOUSE_RADIUS,
         );
         gradient.addColorStop(0, 'rgba(59, 130, 246, 0.04)');
         gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
@@ -115,7 +119,7 @@ export function ParticleCanvas(): JSX.Element {
           MOUSE.x - MOUSE_RADIUS,
           MOUSE.y - MOUSE_RADIUS,
           MOUSE_RADIUS * 2,
-          MOUSE_RADIUS * 2
+          MOUSE_RADIUS * 2,
         );
       }
 
@@ -149,10 +153,6 @@ export function ParticleCanvas(): JSX.Element {
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 pointer-events-none"
-      style={{ zIndex: 0 }}
-    />
+    <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }} />
   );
 }

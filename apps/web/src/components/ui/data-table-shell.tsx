@@ -1,5 +1,10 @@
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
 import { TableSkeletonRows } from '@/components/ui/table-skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -57,13 +62,13 @@ export function DataTableShell<T>({
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       {toolbar && (
-        <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/40">
-          {toolbar}
-        </div>
+        <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/40">{toolbar}</div>
       )}
       <div className={cn('overflow-auto', maxHeight)}>
         <Table>
-          <TableHeader className={cn(stickyHeader && 'sticky top-0 z-10 backdrop-blur-sm bg-slate-50/95')}>
+          <TableHeader
+            className={cn(stickyHeader && 'sticky top-0 z-10 backdrop-blur-sm bg-slate-50/95')}
+          >
             <TableRow className="hover:bg-transparent">
               {columns.map((c) => (
                 <TableHead key={c.key} className={c.headerClassName}>
@@ -91,10 +96,7 @@ export function DataTableShell<T>({
                 <TableRow
                   key={rowKey(row)}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
-                  className={cn(
-                    onRowClick && 'cursor-pointer',
-                    rowClassName?.(row),
-                  )}
+                  className={cn(onRowClick && 'cursor-pointer', rowClassName?.(row))}
                 >
                   {columns.map((c) => (
                     <TableCell key={c.key} className={c.cellClassName}>

@@ -9,7 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Pencil, Plus, PowerOff, Power, Building2, Loader2 } from 'lucide-react';
@@ -41,7 +45,12 @@ export function SucursalesTable(): JSX.Element {
   const [saving, setSaving] = useState(false);
   const [deactivateId, setDeactivateId] = useState<string | null>(null);
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
@@ -57,7 +66,9 @@ export function SucursalesTable(): JSX.Element {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const openCreate = (): void => {
     setEditing(null);
@@ -115,7 +126,9 @@ export function SucursalesTable(): JSX.Element {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">
-          {loading ? 'Cargando...' : `${data.length} ${data.length === 1 ? 'sucursal' : 'sucursales'}`}
+          {loading
+            ? 'Cargando...'
+            : `${data.length} ${data.length === 1 ? 'sucursal' : 'sucursales'}`}
         </p>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
@@ -139,9 +152,13 @@ export function SucursalesTable(): JSX.Element {
                 {errors.nombre && <p className="text-xs text-red-600">{errors.nombre.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label>OrderEat Cafeteria ID <span className="text-xs text-slate-400">(opcional)</span></Label>
+                <Label>
+                  OrderEat Cafeteria ID <span className="text-xs text-slate-400">(opcional)</span>
+                </Label>
                 <Input {...register('cafeteriaId')} placeholder="359" inputMode="numeric" />
-                <p className="text-xs text-slate-400">ID numerico en OrderEat. Requerido para sincronizar inventario/ventas.</p>
+                <p className="text-xs text-slate-400">
+                  ID numerico en OrderEat. Requerido para sincronizar inventario/ventas.
+                </p>
               </div>
               <Button type="submit" className="w-full" disabled={saving}>
                 {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -156,7 +173,7 @@ export function SucursalesTable(): JSX.Element {
         data={data}
         loading={loading}
         rowKey={(s) => s.id}
-        rowClassName={(s) => !s.activa ? 'opacity-60 bg-slate-50/60' : undefined}
+        rowClassName={(s) => (!s.activa ? 'opacity-60 bg-slate-50/60' : undefined)}
         emptyIcon={Building2}
         emptyTitle="Sin sucursales"
         emptyDescription="Crea tu primera sucursal para empezar a gestionar requisiciones y ordenes."
@@ -166,14 +183,23 @@ export function SucursalesTable(): JSX.Element {
           </Button>
         }
         columns={[
-          { key: 'codigo', header: 'Codigo', cell: (s) => <span className="font-semibold text-slate-900">{s.codigo}</span> },
+          {
+            key: 'codigo',
+            header: 'Codigo',
+            cell: (s) => <span className="font-semibold text-slate-900">{s.codigo}</span>,
+          },
           { key: 'nombre', header: 'Nombre', cell: (s) => s.nombre },
           {
             key: 'cafeteriaId',
             header: 'OrderEat ID',
-            cell: (s) => s.cafeteriaId
-              ? <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700">{s.cafeteriaId}</span>
-              : <span className="text-xs text-slate-400">—</span>,
+            cell: (s) =>
+              s.cafeteriaId ? (
+                <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                  {s.cafeteriaId}
+                </span>
+              ) : (
+                <span className="text-xs text-slate-400">—</span>
+              ),
           },
           {
             key: 'activa',
@@ -181,7 +207,11 @@ export function SucursalesTable(): JSX.Element {
             cell: (s) => (
               <Badge
                 variant={s.activa ? 'default' : 'destructive'}
-                className={s.activa ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0' : 'bg-slate-200 text-slate-600 border-0'}
+                className={
+                  s.activa
+                    ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0'
+                    : 'bg-slate-200 text-slate-600 border-0'
+                }
               >
                 {s.activa ? 'Activa' : 'Inactiva'}
               </Badge>
@@ -193,12 +223,19 @@ export function SucursalesTable(): JSX.Element {
             cellClassName: 'text-right',
             cell: (s) => (
               <div className="flex gap-1 justify-end">
-                <Button variant="ghost" size="icon" onClick={() => openEdit(s)} className="h-8 w-8" title="Editar">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => openEdit(s)}
+                  className="h-8 w-8"
+                  title="Editar"
+                >
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
                 {s.activa ? (
                   <Button
-                    variant="ghost" size="icon"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setDeactivateId(s.id)}
                     className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
                     title="Desactivar"
@@ -207,7 +244,8 @@ export function SucursalesTable(): JSX.Element {
                   </Button>
                 ) : (
                   <Button
-                    variant="ghost" size="icon"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleToggleActivo(s.id)}
                     className="h-8 w-8 hover:bg-emerald-50 hover:text-emerald-600"
                     title="Activar"
@@ -223,7 +261,9 @@ export function SucursalesTable(): JSX.Element {
 
       <ConfirmDialog
         open={!!deactivateId}
-        onOpenChange={(openState) => { if (!openState) setDeactivateId(null); }}
+        onOpenChange={(openState) => {
+          if (!openState) setDeactivateId(null);
+        }}
         onConfirm={handleDeactivateConfirm}
         title="Desactivar sucursal"
         description="Esta sucursal sera desactivada. Puedes reactivarla despues."

@@ -7,23 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -39,128 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  Loader2,
-  Plus,
-  Lock,
-} from 'lucide-react';
+import { DollarSign, AlertTriangle, Loader2, Plus, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
-
-/* ── Types ── */
-
-interface Sucursal {
-  id: string;
-  nombre: string;
-  codigo: string;
-}
-
-interface BudgetVsActual {
-  presupuesto: {
-    semana: string;
-    sucursalId: string;
-    sucursal?: Sucursal;
-    presupuestoMos: string | number;
-    presupuestoIns: string | number;
-  };
-  gastoReal: { mos: number; ins: number };
-  diferencia: { mos: number; ins: number };
-  porcentaje: { mos: number; ins: number };
-}
-
-interface GastoProveedor {
-  proveedor: string;
-  total: number;
-}
-
-interface Diferencia {
-  id: string;
-  sucursal: string;
-  producto: string;
-  area: string;
-  cantidadEsperada: number;
-  cantidadRecibida: number;
-  diferencia: number;
-}
-
-/* ── Helpers ── */
-
-function getCurrentWeek(): string {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 1);
-  const diff = now.getTime() - start.getTime();
-  const oneWeek = 604800000;
-  const weekNum = Math.ceil((diff / oneWeek + start.getDay() + 1) / 7);
-  return `${now.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
-}
-
-function getProgressColor(pct: number): string {
-  if (pct > 100) return 'bg-red-500';
-  if (pct >= 80) return 'bg-amber-500';
-  return 'bg-emerald-500';
-}
-
-function getProgressTextColor(pct: number): string {
-  if (pct > 100) return 'text-red-600';
-  if (pct >= 80) return 'text-amber-600';
-  return 'text-emerald-600';
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-  }).format(amount);
-}
-
-/* ── Budget Progress Bar ── */
-
-function BudgetBar({
-  label,
-  budget,
-  actual,
-}: {
-  label: string;
-  budget: number;
-  actual: number;
-}) {
-  const pct = budget > 0 ? (actual / budget) * 100 : 0;
-  const barWidth = Math.min(pct, 100);
-  const color = getProgressColor(pct);
-  const textColor = getProgressTextColor(pct);
-
-  return (
-    <div className="space-y-1">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-sm">
-        <span className="font-medium text-slate-700">{label}</span>
-        <span className={`font-semibold ${textColor}`}>
-          {formatCurrency(actual)} / {formatCurrency(budget)} ({pct.toFixed(1)}%)
-        </span>
-      </div>
-      <div className="w-full bg-slate-200 rounded-full h-3">
-        <div
-          className={`h-3 rounded-full transition-all duration-500 ${color}`}
-          style={{ width: `${barWidth}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-/* ── Main Component ── */
+import type { Sucursal, BudgetVsActual, GastoProveedor, Diferencia } from './types';
+import { getCurrentWeek } from './types';
+import { BudgetOverview } from './BudgetOverview';
+import { SupplierSpendChart } from './SupplierSpendChart';
+import { CloseWeekSection } from './CloseWeekSection';
 
 export function FinancieroPage(): JSX.Element {
   const user = useAuthStore((s) => s.user);
@@ -169,15 +39,15 @@ export function FinancieroPage(): JSX.Element {
   const [semana, setSemana] = useState(getCurrentWeek());
   const [loading, setLoading] = useState(false);
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
-  const [presupuestos, setPresupuestos] = useState<{ sucursal: Sucursal; data: BudgetVsActual }[]>([]);
+  const [presupuestos, setPresupuestos] = useState<{ sucursal: Sucursal; data: BudgetVsActual }[]>(
+    [],
+  );
   const [gastosProveedor, setGastosProveedor] = useState<GastoProveedor[]>([]);
   const [diferencias, setDiferencias] = useState<Diferencia[]>([]);
 
   // Week closing state
   const [weekClosed, setWeekClosed] = useState(false);
-  const [closingWeek, setClosingWeek] = useState(false);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
-  const [closeNotas, setCloseNotas] = useState('');
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -204,7 +74,7 @@ export function FinancieroPage(): JSX.Element {
         api
           .get(`/presupuestos/${semana}/${s.id}`)
           .then((r) => r.data.data)
-          .catch(() => null)
+          .catch(() => null),
       );
 
       const [presResults, gastosRes, difRes, cerradaRes] = await Promise.all([
@@ -219,7 +89,7 @@ export function FinancieroPage(): JSX.Element {
       setWeekClosed(isCerrada);
 
       const mapped = presResults
-        .map((r, i) => r ? { sucursal: sucursales[i], data: r as BudgetVsActual } : null)
+        .map((r, i) => (r ? { sucursal: sucursales[i], data: r as BudgetVsActual } : null))
         .filter(Boolean) as { sucursal: Sucursal; data: BudgetVsActual }[];
       setPresupuestos(mapped);
       setGastosProveedor(gastosRes?.data?.data || []);
@@ -265,36 +135,11 @@ export function FinancieroPage(): JSX.Element {
       loadData();
     } catch (err: unknown) {
       const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || 'Error al guardar presupuesto';
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Error al guardar presupuesto';
       toast.error(msg);
     } finally {
       setDialogSubmitting(false);
-    }
-  };
-
-  const handleCloseWeek = async () => {
-    setClosingWeek(true);
-    try {
-      await api.post('/presupuestos/cerrar-semana', { semana, notas: closeNotas });
-      toast.success('Semana cerrada');
-      setWeekClosed(true);
-      setCloseDialogOpen(false);
-      setCloseNotas('');
-    } catch {
-      toast.error('Error al cerrar semana');
-    } finally {
-      setClosingWeek(false);
-    }
-  };
-
-  const handleReopenWeek = async () => {
-    try {
-      await api.delete(`/presupuestos/reabrir-semana/${semana}`);
-      toast.success('Semana reabierta');
-      setWeekClosed(false);
-    } catch {
-      toast.error('Error al reabrir');
     }
   };
 
@@ -354,23 +199,14 @@ export function FinancieroPage(): JSX.Element {
         </CardContent>
       </Card>
 
-      {/* Week closed banner */}
-      {weekClosed && (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="py-3 flex items-center gap-3">
-            <Lock className="h-5 w-5 text-amber-600" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-amber-800">Semana Cerrada</p>
-              <p className="text-xs text-amber-600">Esta semana ha sido cerrada. No se permiten modificaciones.</p>
-            </div>
-            {isAdmin && (
-              <Button variant="outline" size="sm" onClick={handleReopenWeek} className="text-amber-700 border-amber-300">
-                Reabrir
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      <CloseWeekSection
+        semana={semana}
+        isAdmin={!!isAdmin}
+        weekClosed={weekClosed}
+        setWeekClosed={setWeekClosed}
+        closeDialogOpen={closeDialogOpen}
+        setCloseDialogOpen={setCloseDialogOpen}
+      />
 
       {/* Loading indicator */}
       {loading && (
@@ -381,132 +217,8 @@ export function FinancieroPage(): JSX.Element {
 
       {!loading && (
         <>
-          {/* ── Section 2: Budget vs Actual Cards ── */}
-          {presupuestos.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Presupuesto vs Gasto Real
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {presupuestos.map((entry) => {
-                  const budgetMos = Number(entry.data.presupuesto.presupuestoMos) || 0;
-                  const budgetIns = Number(entry.data.presupuesto.presupuestoIns) || 0;
-                  const actualMos = entry.data.gastoReal.mos || 0;
-                  const actualIns = entry.data.gastoReal.ins || 0;
-                  const totalBudget = budgetMos + budgetIns;
-                  const totalActual = actualMos + actualIns;
-                  const totalPct =
-                    totalBudget > 0 ? (totalActual / totalBudget) * 100 : 0;
-
-                  return (
-                    <Card key={entry.sucursal.id}>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          {entry.sucursal.nombre}
-                          {totalPct > 100 ? (
-                            <Badge variant="destructive" className="ml-auto">
-                              <AlertTriangle className="h-3 w-3 mr-1" />
-                              Excedido
-                            </Badge>
-                          ) : totalPct >= 80 ? (
-                            <Badge
-                              variant="secondary"
-                              className="ml-auto bg-amber-100 text-amber-700"
-                            >
-                              <TrendingUp className="h-3 w-3 mr-1" />
-                              Atencion
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="secondary"
-                              className="ml-auto bg-emerald-100 text-emerald-700"
-                            >
-                              <TrendingDown className="h-3 w-3 mr-1" />
-                              En rango
-                            </Badge>
-                          )}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <BudgetBar
-                          label="MOS"
-                          budget={budgetMos}
-                          actual={actualMos}
-                        />
-                        <BudgetBar
-                          label="INS"
-                          budget={budgetIns}
-                          actual={actualIns}
-                        />
-                        <div className="border-t pt-3">
-                          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-sm">
-                            <span className="font-semibold text-slate-800">
-                              Total
-                            </span>
-                            <span
-                              className={`font-bold ${getProgressTextColor(totalPct)}`}
-                            >
-                              {formatCurrency(totalActual)} /{' '}
-                              {formatCurrency(totalBudget)}
-                            </span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* ── Section 3: Supplier Spending Chart ── */}
-          {gastosProveedor.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Gastos por Proveedor
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="w-full h-[300px] sm:h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={gastosProveedor}
-                      margin={{ top: 5, right: 20, left: 10, bottom: 60 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="proveedor"
-                        angle={-45}
-                        textAnchor="end"
-                        tick={{ fontSize: 12 }}
-                        height={80}
-                      />
-                      <YAxis
-                        tickFormatter={(v) =>
-                          `$${(v / 1000).toFixed(0)}k`
-                        }
-                        tick={{ fontSize: 12 }}
-                      />
-                      <Tooltip
-                        formatter={(value) => [
-                          formatCurrency(Number(value)),
-                          'Gasto',
-                        ]}
-                      />
-                      <Bar
-                        dataKey="total"
-                        fill="#3b82f6"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <BudgetOverview presupuestos={presupuestos} />
+          <SupplierSpendChart gastosProveedor={gastosProveedor} />
 
           {/* ── Section 4: Differences Table ── */}
           {diferencias.length > 0 && (
@@ -533,33 +245,23 @@ export function FinancieroPage(): JSX.Element {
                     <TableBody>
                       {diferencias.map((d) => (
                         <TableRow key={d.id}>
-                          <TableCell className="font-medium">
-                            {d.sucursal}
-                          </TableCell>
+                          <TableCell className="font-medium">{d.sucursal}</TableCell>
                           <TableCell>{d.producto}</TableCell>
                           <TableCell>
-                            <Badge
-                              variant={
-                                d.area === 'MOS' ? 'default' : 'secondary'
-                              }
-                            >
+                            <Badge variant={d.area === 'MOS' ? 'default' : 'secondary'}>
                               {d.area}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
-                            {d.cantidadEsperada}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {d.cantidadRecibida}
-                          </TableCell>
+                          <TableCell className="text-right">{d.cantidadEsperada}</TableCell>
+                          <TableCell className="text-right">{d.cantidadRecibida}</TableCell>
                           <TableCell className="text-right">
                             <span
                               className={`font-semibold ${
                                 d.diferencia > 0
                                   ? 'text-emerald-600'
                                   : d.diferencia < 0
-                                  ? 'text-red-600'
-                                  : 'text-slate-600'
+                                    ? 'text-red-600'
+                                    : 'text-slate-600'
                               }`}
                             >
                               {d.diferencia > 0 ? '+' : ''}
@@ -581,13 +283,16 @@ export function FinancieroPage(): JSX.Element {
             diferencias.length === 0 &&
             !loading && (
               <Card>
-                <CardContent className="py-12 text-center text-slate-500">
-                  <DollarSign className="h-10 w-10 mx-auto mb-3 text-slate-300" />
-                  <p>
-                    No hay datos financieros para la semana seleccionada.
+                <CardContent className="flex flex-col items-center justify-center py-20 px-6 text-center text-slate-500">
+                  <div className="h-14 w-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-5">
+                    <DollarSign className="h-7 w-7 text-slate-400" />
+                  </div>
+                  <p className="text-base font-semibold text-slate-800 mb-1.5">
+                    No hay datos financieros
                   </p>
-                  <p className="text-sm mt-1">
-                    Seleccione una semana y presione &quot;Cargar&quot;.
+                  <p className="text-sm max-w-md">
+                    Selecciona una semana y presiona &quot;Cargar&quot; para ver el presupuesto,
+                    gastos y diferencias.
                   </p>
                 </CardContent>
               </Card>
@@ -608,20 +313,12 @@ export function FinancieroPage(): JSX.Element {
           <div className="space-y-4">
             <div className="space-y-1">
               <Label className="text-sm">Semana</Label>
-              <Input
-                type="week"
-                value={semana}
-                disabled
-                className="min-h-[44px] bg-slate-50"
-              />
+              <Input type="week" value={semana} disabled className="min-h-[44px] bg-slate-50" />
             </div>
 
             <div className="space-y-1">
               <Label className="text-sm">Sucursal</Label>
-              <Select
-                value={dialogSucursalId}
-                onValueChange={setDialogSucursalId}
-              >
+              <Select value={dialogSucursalId} onValueChange={setDialogSucursalId}>
                 <SelectTrigger className="min-h-[44px]">
                   <SelectValue placeholder="Seleccionar sucursal" />
                 </SelectTrigger>
@@ -676,33 +373,6 @@ export function FinancieroPage(): JSX.Element {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* ── Close Week Dialog ── */}
-      <AlertDialog open={closeDialogOpen} onOpenChange={setCloseDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cerrar Semana</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cerrar la semana {semana}? Esto impedira futuras modificaciones.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-2">
-            <Textarea
-              placeholder="Notas (opcional)"
-              value={closeNotas}
-              onChange={(e) => setCloseNotas(e.target.value)}
-              rows={3}
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={closingWeek}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCloseWeek} disabled={closingWeek} className="bg-amber-600 hover:bg-amber-700">
-              {closingWeek && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Cerrar Semana
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

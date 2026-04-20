@@ -19,11 +19,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const isLoginRequest = error.config?.url?.includes('/auth/login');
-    if (
-      error.response?.status === 401 &&
-      typeof window !== 'undefined' &&
-      !isLoginRequest
-    ) {
+    if (error.response?.status === 401 && typeof window !== 'undefined' && !isLoginRequest) {
       localStorage.removeItem('nutri_token');
       window.location.href = '/login';
     }

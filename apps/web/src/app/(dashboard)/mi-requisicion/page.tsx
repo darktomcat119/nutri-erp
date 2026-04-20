@@ -5,7 +5,10 @@ import { RequisicionInsForm } from '@/features/requisiciones/components/Requisic
 export default function Page() {
   return (
     <div>
-      <PageHeader title="Mi Requisicion Insumos" description="Crear pedido semanal de insumos para tu sucursal" />
+      <PageHeader
+        title="Mi Requisicion Insumos"
+        description="Crear pedido semanal de insumos para tu sucursal"
+      />
       <RequisicionInsForm />
     </div>
   );

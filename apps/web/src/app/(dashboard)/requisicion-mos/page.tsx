@@ -6,7 +6,10 @@ import { RequisicionMosPage } from '@/features/requisicion-mos/components/Requis
 export default function Page(): JSX.Element {
   return (
     <div>
-      <PageHeader title="Requisicion Mostrador" description="Calculo automatico de compras basado en inventario actual y maximos por sucursal" />
+      <PageHeader
+        title="Requisicion Mostrador"
+        description="Calculo automatico de compras basado en inventario actual y maximos por sucursal"
+      />
       <RequisicionMosPage />
     </div>
   );

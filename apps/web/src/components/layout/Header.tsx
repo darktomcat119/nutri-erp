@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Menu, LogOut, User as UserIcon, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
+import { HeaderNotifications } from './HeaderNotifications';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,21 +56,31 @@ function buildBreadcrumbs(pathname: string): Array<{ label: string; href: string
 
 function roleLabel(role?: string): string {
   switch (role) {
-    case 'ADMIN': return 'Administrador';
-    case 'SUPERVISOR': return 'Supervisor';
-    case 'ENCARGADO': return 'Encargado';
-    case 'CHOFER': return 'Chofer';
-    default: return '';
+    case 'ADMIN':
+      return 'Administrador';
+    case 'SUPERVISOR':
+      return 'Supervisor';
+    case 'ENCARGADO':
+      return 'Encargado';
+    case 'CHOFER':
+      return 'Chofer';
+    default:
+      return '';
   }
 }
 
 function roleColor(role?: string): string {
   switch (role) {
-    case 'ADMIN': return 'bg-violet-500/10 text-violet-700 border-violet-200';
-    case 'SUPERVISOR': return 'bg-blue-500/10 text-blue-700 border-blue-200';
-    case 'ENCARGADO': return 'bg-emerald-500/10 text-emerald-700 border-emerald-200';
-    case 'CHOFER': return 'bg-amber-500/10 text-amber-700 border-amber-200';
-    default: return 'bg-slate-100 text-slate-700 border-slate-200';
+    case 'ADMIN':
+      return 'bg-violet-500/10 text-violet-700 border-violet-200';
+    case 'SUPERVISOR':
+      return 'bg-blue-500/10 text-blue-700 border-blue-200';
+    case 'ENCARGADO':
+      return 'bg-emerald-500/10 text-emerald-700 border-emerald-200';
+    case 'CHOFER':
+      return 'bg-amber-500/10 text-amber-700 border-amber-200';
+    default:
+      return 'bg-slate-100 text-slate-700 border-slate-200';
   }
 }
 
@@ -111,6 +122,9 @@ export function Header({ onMobileMenuClick }: { onMobileMenuClick: () => void })
         </h1>
       </div>
 
+      {/* Notifications bell */}
+      <HeaderNotifications />
+
       {/* User menu */}
       {user && (
         <DropdownMenu>
@@ -120,9 +134,12 @@ export function Header({ onMobileMenuClick }: { onMobileMenuClick: () => void })
                 {initial}
               </div>
               <div className="hidden sm:block text-left min-w-0">
-                <div className="text-[13px] font-semibold text-slate-900 truncate max-w-[120px]">{user.nombre}</div>
+                <div className="text-[13px] font-semibold text-slate-900 truncate max-w-[120px]">
+                  {user.nombre}
+                </div>
                 <div className="text-[10px] text-slate-500 leading-tight truncate max-w-[120px]">
-                  {user.sucursal?.codigo ? `${user.sucursal.codigo} · ` : ''}{user.email}
+                  {user.sucursal?.codigo ? `${user.sucursal.codigo} · ` : ''}
+                  {user.email}
                 </div>
               </div>
             </button>
@@ -139,7 +156,12 @@ export function Header({ onMobileMenuClick }: { onMobileMenuClick: () => void })
                 </div>
               </div>
               <div className="mt-3 flex items-center gap-2">
-                <span className={cn('inline-flex items-center text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border', roleColor(user.role))}>
+                <span
+                  className={cn(
+                    'inline-flex items-center text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border',
+                    roleColor(user.role),
+                  )}
+                >
                   {roleLabel(user.role)}
                 </span>
                 {user.sucursal && (
@@ -157,7 +179,10 @@ export function Header({ onMobileMenuClick }: { onMobileMenuClick: () => void })
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50">
+            <DropdownMenuItem
+              onClick={logout}
+              className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50"
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Cerrar Sesion
             </DropdownMenuItem>

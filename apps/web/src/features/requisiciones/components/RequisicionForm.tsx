@@ -105,9 +105,7 @@ export function RequisicionForm(): JSX.Element {
     try {
       const r = await api.get('/requisiciones/mi-sucursal');
       const reqs: ExistingReq[] = r.data.data || r.data || [];
-      const found = reqs.find(
-        (req) => req.semana === semana && (req.area === 'INS' || !req.area),
-      );
+      const found = reqs.find((req) => req.semana === semana && (req.area === 'INS' || !req.area));
       if (found) {
         const detail = await api.get(`/requisiciones/${found.id}`);
         const req: ExistingReq = detail.data.data || detail.data;
@@ -155,10 +153,8 @@ export function RequisicionForm(): JSX.Element {
   const disponible = presupuesto - total;
   const pct = presupuesto > 0 ? (total / presupuesto) * 100 : 0;
 
-  const barColor =
-    pct > 100 ? 'bg-red-500' : pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500';
-  const textColor =
-    pct > 100 ? 'text-red-700' : pct >= 80 ? 'text-amber-700' : 'text-emerald-700';
+  const barColor = pct > 100 ? 'bg-red-500' : pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500';
+  const textColor = pct > 100 ? 'text-red-700' : pct >= 80 ? 'text-amber-700' : 'text-emerald-700';
 
   const filteredInsumos = useMemo(() => {
     const q = searchFilter.trim().toLowerCase();
@@ -295,13 +291,10 @@ export function RequisicionForm(): JSX.Element {
                 <div className="flex-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
                   <span className="text-slate-600">
                     Presupuesto:{' '}
-                    <strong className="text-slate-900">
-                      ${presupuesto.toFixed(2)}
-                    </strong>
+                    <strong className="text-slate-900">${presupuesto.toFixed(2)}</strong>
                   </span>
                   <span className="text-slate-600">
-                    Gastado:{' '}
-                    <strong className={textColor}>${total.toFixed(2)}</strong>
+                    Gastado: <strong className={textColor}>${total.toFixed(2)}</strong>
                   </span>
                   <span className="text-slate-600">
                     Disponible:{' '}
@@ -310,9 +303,7 @@ export function RequisicionForm(): JSX.Element {
                     </strong>
                   </span>
                 </div>
-                <span className={`text-sm font-bold ${textColor}`}>
-                  {pct.toFixed(0)}%
-                </span>
+                <span className={`text-sm font-bold ${textColor}`}>{pct.toFixed(0)}%</span>
               </div>
               <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden">
                 <div
@@ -363,10 +354,7 @@ export function RequisicionForm(): JSX.Element {
           {loadingCatalog ? (
             <div className="space-y-2">
               {[1, 2, 3, 4, 5].map((n) => (
-                <div
-                  key={n}
-                  className="h-14 bg-slate-100 rounded animate-pulse"
-                />
+                <div key={n} className="h-14 bg-slate-100 rounded animate-pulse" />
               ))}
             </div>
           ) : filteredInsumos.length === 0 ? (
@@ -383,8 +371,7 @@ export function RequisicionForm(): JSX.Element {
               <div key={cat} className="space-y-2">
                 <div className="sticky top-28 bg-slate-50 -mx-6 px-6 py-2 border-y border-slate-200 z-10">
                   <h3 className="text-xs font-bold uppercase tracking-wide text-slate-600">
-                    {cat}{' '}
-                    <span className="text-slate-400 font-normal">({list.length})</span>
+                    {cat} <span className="text-slate-400 font-normal">({list.length})</span>
                   </h3>
                 </div>
                 <div className="divide-y">
@@ -400,14 +387,9 @@ export function RequisicionForm(): JSX.Element {
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-medium text-sm truncate">
-                              {ins.nombre}
-                            </p>
+                            <p className="font-medium text-sm truncate">{ins.nombre}</p>
                             {ins.categoria && (
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] h-5"
-                              >
+                              <Badge variant="outline" className="text-[10px] h-5">
                                 {ins.categoria}
                               </Badge>
                             )}
@@ -419,8 +401,7 @@ export function RequisicionForm(): JSX.Element {
                           </p>
                         </div>
                         <div className="text-xs text-slate-600 sm:w-24 sm:text-right">
-                          <span className="sm:hidden">Costo: </span>$
-                          {costo.toFixed(2)}
+                          <span className="sm:hidden">Costo: </span>${costo.toFixed(2)}
                         </div>
                         <div className="sm:w-28">
                           <Input
@@ -430,9 +411,7 @@ export function RequisicionForm(): JSX.Element {
                             value={qty || ''}
                             placeholder="0"
                             disabled={isReadOnly}
-                            onChange={(e) =>
-                              updateQty(ins.id, Number(e.target.value))
-                            }
+                            onChange={(e) => updateQty(ins.id, Number(e.target.value))}
                             className="h-9"
                           />
                         </div>
@@ -458,9 +437,7 @@ export function RequisicionForm(): JSX.Element {
         <CardContent className="pt-4 space-y-4">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wide">
-                Total Requisicion
-              </p>
+              <p className="text-xs text-slate-500 uppercase tracking-wide">Total Requisicion</p>
               <p className={`text-3xl font-bold ${exceeds ? 'text-red-700' : 'text-slate-900'}`}>
                 ${total.toFixed(2)}
               </p>
@@ -520,9 +497,7 @@ export function RequisicionForm(): JSX.Element {
               </Button>
               <Button
                 onClick={() => submit(true)}
-                disabled={
-                  loading || (exceeds && !justificacion.trim())
-                }
+                disabled={loading || (exceeds && !justificacion.trim())}
                 className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto min-h-[44px]"
               >
                 {loading ? (

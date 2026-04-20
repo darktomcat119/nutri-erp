@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Res, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Res, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
@@ -47,9 +47,52 @@ export class InsumosController {
   @Roles(Role.ADMIN)
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Importar insumos desde Excel' })
+  @ApiOperation({ summary: 'Importar insumos desde Excel (bloqueante, legado)' })
   async importExcel(@UploadedFile() file: Express.Multer.File) {
     return this.insumosService.importExcel(file.buffer);
+  }
+
+  @Post('import-excel-stream')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Importar insumos desde Excel con progreso via SSE' })
+  async importExcelStream(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('excludeKeys') excludeKeysRaw?: string,
+  ) {
+    if (!file || !file.buffer) {
+      throw new BadRequestException(
+        'No se recibio ningun archivo. Asegurate de adjuntar un Excel en el campo "file".',
+      );
+    }
+    let excludeKeys: string[] = [];
+    if (excludeKeysRaw) {
+      try {
+        const parsed: unknown = JSON.parse(excludeKeysRaw);
+        if (Array.isArray(parsed)) {
+          excludeKeys = parsed.filter((v): v is string => typeof v === 'string');
+        }
+      } catch {
+        excludeKeys = excludeKeysRaw.split(',').map((s) => s.trim()).filter(Boolean);
+      }
+    }
+    const jobId = this.insumosService.startImportExcelJob(file.buffer, excludeKeys);
+    return { jobId };
+  }
+
+  @Post('import-excel-preview')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Previsualizar importacion sin escribir' })
+  async importExcelPreview(@UploadedFile() file: Express.Multer.File) {
+    if (!file || !file.buffer) {
+      throw new BadRequestException('No se recibio ningun archivo.');
+    }
+    return this.insumosService.previewImportExcel(file.buffer);
   }
 
   @Get(':id')

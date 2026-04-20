@@ -62,9 +62,7 @@ export function AppLayout({ children }: { children: React.ReactNode }): JSX.Elem
       >
         <Header onMobileMenuClick={() => setMobileOpen(true)} />
         <main>
-          <div className="p-4 sm:p-6 lg:p-8 animate-in-page">
-            {children}
-          </div>
+          <div className="p-4 sm:p-6 lg:p-8 animate-in-page">{children}</div>
         </main>
       </div>
     </div>

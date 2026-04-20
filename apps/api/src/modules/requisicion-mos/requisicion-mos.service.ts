@@ -142,57 +142,48 @@ export class RequisicionMosService {
     const totalDisplays = purchases.reduce((sum, p) => sum + p.displaysAComprar, 0);
     const totalDinero = Math.round(purchases.reduce((sum, p) => sum + p.dinero, 0) * 100) / 100;
 
-    // Upsert: one requisicion per (semana, sucursalId) pair
-    const existing = await this.prisma.requisicionMos.findUnique({
-      where: { semana_sucursalId: { semana, sucursalId } },
-    });
-    if (existing) {
-      await this.prisma.requisicionMosItem.deleteMany({ where: { requisicionMosId: existing.id } });
-    }
+    // Upsert: one requisicion per (semana, sucursalId) pair.
+    // Wrap delete + create/update in a transaction to avoid partial state on failure.
+    const itemsCreate = purchases.map((p) => ({
+      productoId: p.productoId,
+      inventarioActual: p.inventarioActual,
+      maximo: p.maximo,
+      compraNecesaria: p.compraNecesaria,
+      displaysAComprar: p.displaysAComprar,
+      costoDisplay: new Decimal(p.costoDisplay.toFixed(2)),
+      dinero: new Decimal(p.dinero.toFixed(2)),
+    }));
 
-    const requisicion = existing
-      ? await this.prisma.requisicionMos.update({
+    const requisicion = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.requisicionMos.findUnique({
+        where: { semana_sucursalId: { semana, sucursalId } },
+      });
+      if (existing) {
+        await tx.requisicionMosItem.deleteMany({ where: { requisicionMosId: existing.id } });
+        return tx.requisicionMos.update({
           where: { id: existing.id },
           data: {
             fechaInventario: new Date(),
             totalDisplays,
             totalDinero: new Decimal(totalDinero.toFixed(2)),
             estado: 'GENERADA',
-            items: {
-              create: purchases.map((p) => ({
-                productoId: p.productoId,
-                inventarioActual: p.inventarioActual,
-                maximo: p.maximo,
-                compraNecesaria: p.compraNecesaria,
-                displaysAComprar: p.displaysAComprar,
-                costoDisplay: new Decimal(p.costoDisplay.toFixed(2)),
-                dinero: new Decimal(p.dinero.toFixed(2)),
-              })),
-            },
-          },
-          include: { sucursal: true, items: { include: { producto: true } } },
-        })
-      : await this.prisma.requisicionMos.create({
-          data: {
-            semana,
-            sucursalId,
-            fechaInventario: new Date(),
-            totalDisplays,
-            totalDinero: new Decimal(totalDinero.toFixed(2)),
-            items: {
-              create: purchases.map((p) => ({
-                productoId: p.productoId,
-                inventarioActual: p.inventarioActual,
-                maximo: p.maximo,
-                compraNecesaria: p.compraNecesaria,
-                displaysAComprar: p.displaysAComprar,
-                costoDisplay: new Decimal(p.costoDisplay.toFixed(2)),
-                dinero: new Decimal(p.dinero.toFixed(2)),
-              })),
-            },
+            items: { create: itemsCreate },
           },
           include: { sucursal: true, items: { include: { producto: true } } },
         });
+      }
+      return tx.requisicionMos.create({
+        data: {
+          semana,
+          sucursalId,
+          fechaInventario: new Date(),
+          totalDisplays,
+          totalDinero: new Decimal(totalDinero.toFixed(2)),
+          items: { create: itemsCreate },
+        },
+        include: { sucursal: true, items: { include: { producto: true } } },
+      });
+    });
 
     return {
       data: {

@@ -20,8 +20,10 @@ function HeroCanvas(): JSX.Element {
     let time = 0;
 
     interface Orb {
-      x: number; y: number;
-      vx: number; vy: number;
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
       radius: number;
       hue: number;
       opacity: number;
@@ -173,25 +175,37 @@ export function HeroCarousel({ userName, roleLabel, semana }: HeroCarouselProps)
   const [isTransitioning, setIsTransitioning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const goTo = useCallback((index: number) => {
-    if (isTransitioning) return;
-    setIsTransitioning(true);
-    setCurrent(index);
-    setTimeout(() => setIsTransitioning(false), 700);
-  }, [isTransitioning]);
+  const goTo = useCallback(
+    (index: number) => {
+      if (isTransitioning) return;
+      setIsTransitioning(true);
+      setCurrent(index);
+      setTimeout(() => setIsTransitioning(false), 700);
+    },
+    [isTransitioning],
+  );
 
   const next = useCallback(() => goTo((current + 1) % slides.length), [current, goTo]);
-  const prev = useCallback(() => goTo((current - 1 + slides.length) % slides.length), [current, goTo]);
+  const prev = useCallback(
+    () => goTo((current - 1 + slides.length) % slides.length),
+    [current, goTo],
+  );
 
   // Auto-advance
   useEffect(() => {
     intervalRef.current = setInterval(next, 6000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [next]);
 
   // Pause on hover
-  const pause = () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  const resume = () => { intervalRef.current = setInterval(next, 6000); };
+  const pause = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  };
+  const resume = () => {
+    intervalRef.current = setInterval(next, 6000);
+  };
 
   return (
     <div
@@ -207,13 +221,7 @@ export function HeroCarousel({ userName, roleLabel, semana }: HeroCarouselProps)
             i === current ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
           }`}
         >
-          <Image
-            src={slide.image}
-            alt=""
-            fill
-            className="object-cover"
-            priority={i === 0}
-          />
+          <Image src={slide.image} alt="" fill className="object-cover" priority={i === 0} />
           <div className={`absolute inset-0 bg-gradient-to-r ${slide.gradient}`} />
         </div>
       ))}
@@ -239,14 +247,14 @@ export function HeroCarousel({ userName, roleLabel, semana }: HeroCarouselProps)
         <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">
           Bienvenido, {userName}
         </h1>
-        <p className="text-slate-400 text-xs sm:text-sm mt-0.5 mb-1">
-          {roleLabel}
-        </p>
+        <p className="text-slate-400 text-xs sm:text-sm mt-0.5 mb-1">{roleLabel}</p>
 
         {/* Slide subtitle with fade */}
-        <p className={`text-white/50 text-[11px] sm:text-xs max-w-md transition-all duration-500 ${
-          isTransitioning ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
-        }`}>
+        <p
+          className={`text-white/50 text-[11px] sm:text-xs max-w-md transition-all duration-500 ${
+            isTransitioning ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
+          }`}
+        >
           {slides[current].subtitle}
         </p>
       </div>
@@ -272,9 +280,7 @@ export function HeroCarousel({ userName, roleLabel, semana }: HeroCarouselProps)
             key={i}
             onClick={() => goTo(i)}
             className={`transition-all duration-300 rounded-full ${
-              i === current
-                ? 'w-6 h-1.5 bg-white/80'
-                : 'w-1.5 h-1.5 bg-white/30 hover:bg-white/50'
+              i === current ? 'w-6 h-1.5 bg-white/80' : 'w-1.5 h-1.5 bg-white/30 hover:bg-white/50'
             }`}
           />
         ))}

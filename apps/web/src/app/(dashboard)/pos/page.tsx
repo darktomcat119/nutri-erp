@@ -6,7 +6,10 @@ export const metadata = { title: 'Integracion POS' };
 export default function PosPage(): JSX.Element {
   return (
     <div>
-      <PageHeader title="Integracion POS" description="Importacion y exportacion de datos OrderEat" />
+      <PageHeader
+        title="Integracion POS"
+        description="Importacion y exportacion de datos OrderEat"
+      />
       <PosIntegrationPage />
     </div>
   );

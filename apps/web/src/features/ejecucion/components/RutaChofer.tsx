@@ -6,13 +6,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Check, ChevronDown, ChevronUp, Loader2, CheckCircle2, Route } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface RutaItem {
-  id: string; area: string; cantidadSolicitada: string; cantidadComprada: string | null;
-  precioEstimado: string; precioReal: string | null; comprado: boolean;
+  id: string;
+  area: string;
+  cantidadSolicitada: string;
+  cantidadComprada: string | null;
+  precioEstimado: string;
+  precioReal: string | null;
+  comprado: boolean;
   producto: { nombre: string; codigo: string } | null;
   insumo: { nombre: string; codigo: string; unidad: string } | null;
 }
@@ -29,7 +40,12 @@ interface RutaData {
   ruta: RutaSupplier[];
 }
 
-interface OC { id: string; folio: string; semana: string; estado: string; }
+interface OC {
+  id: string;
+  folio: string;
+  semana: string;
+  estado: string;
+}
 
 export function RutaChofer(): JSX.Element {
   const [ocs, setOcs] = useState<OC[]>([]);
@@ -47,7 +63,9 @@ export function RutaChofer(): JSX.Element {
       const r2 = await api.get('/ordenes-compra?estado=APROBADA');
       setOcs([...list, ...r2.data.data]);
       if (list.length > 0 && !selectedOc) setSelectedOc(list[0].id);
-    } catch { toast.error('Error al cargar ordenes'); }
+    } catch {
+      toast.error('Error al cargar ordenes');
+    }
   }, [selectedOc]);
 
   const loadRuta = useCallback(async (): Promise<void> => {
@@ -61,17 +79,25 @@ export function RutaChofer(): JSX.Element {
       for (const sup of data.ruta) {
         for (const item of sup.items) {
           vals[item.id] = {
-            qty: item.cantidadComprada ? Number(item.cantidadComprada) : Number(item.cantidadSolicitada),
+            qty: item.cantidadComprada
+              ? Number(item.cantidadComprada)
+              : Number(item.cantidadSolicitada),
             price: item.precioReal ? Number(item.precioReal) : Number(item.precioEstimado),
           };
         }
       }
       setItemValues(vals);
-    } catch { toast.error('Error al cargar ruta'); }
+    } catch {
+      toast.error('Error al cargar ruta');
+    }
   }, [selectedOc]);
 
-  useEffect(() => { loadOcs(); }, [loadOcs]);
-  useEffect(() => { loadRuta(); }, [loadRuta]);
+  useEffect(() => {
+    loadOcs();
+  }, [loadOcs]);
+  useEffect(() => {
+    loadRuta();
+  }, [loadRuta]);
 
   const comprarItem = async (itemId: string): Promise<void> => {
     const vals = itemValues[itemId];
@@ -84,8 +110,11 @@ export function RutaChofer(): JSX.Element {
       });
       toast.success('Item registrado');
       loadRuta();
-    } catch { toast.error('Error al registrar'); }
-    finally { setSaving(null); }
+    } catch {
+      toast.error('Error al registrar');
+    } finally {
+      setSaving(null);
+    }
   };
 
   const completar = async (): Promise<void> => {
@@ -96,7 +125,8 @@ export function RutaChofer(): JSX.Element {
       loadRuta();
       loadOcs();
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error';
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error';
       toast.error(msg);
     }
   };
@@ -114,16 +144,24 @@ export function RutaChofer(): JSX.Element {
             </div>
             <div className="flex-1">
               <Select value={selectedOc} onValueChange={setSelectedOc}>
-                <SelectTrigger className="h-12 text-base"><SelectValue placeholder="Seleccionar orden de compra" /></SelectTrigger>
+                <SelectTrigger className="h-12 text-base">
+                  <SelectValue placeholder="Seleccionar orden de compra" />
+                </SelectTrigger>
                 <SelectContent>
                   {ocs.map((oc) => (
-                    <SelectItem key={oc.id} value={oc.id}>{oc.folio} — {oc.semana} ({oc.estado.replace('_', ' ')})</SelectItem>
+                    <SelectItem key={oc.id} value={oc.id}>
+                      {oc.folio} — {oc.semana} ({oc.estado.replace('_', ' ')})
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             {allDone && (
-              <Button onClick={completar} size="lg" className="bg-emerald-600 hover:bg-emerald-700 h-12 w-full sm:w-auto">
+              <Button
+                onClick={completar}
+                size="lg"
+                className="bg-emerald-600 hover:bg-emerald-700 h-12 w-full sm:w-auto"
+              >
                 <CheckCircle2 className="h-5 w-5 mr-2" /> Completar
               </Button>
             )}
@@ -133,7 +171,10 @@ export function RutaChofer(): JSX.Element {
 
       {/* Supplier Cards */}
       {ruta?.ruta.map((sup) => (
-        <Card key={sup.proveedor.id} className={sup.completado ? 'border-emerald-200 bg-emerald-50/50' : ''}>
+        <Card
+          key={sup.proveedor.id}
+          className={sup.completado ? 'border-emerald-200 bg-emerald-50/50' : ''}
+        >
           <CardHeader
             className="cursor-pointer py-4"
             onClick={() => setExpanded(expanded === sup.proveedor.id ? null : sup.proveedor.id)}
@@ -145,18 +186,26 @@ export function RutaChofer(): JSX.Element {
                 </span>
                 <div>
                   <CardTitle className="text-lg">{sup.proveedor.nombre}</CardTitle>
-                  <p className="text-sm text-slate-500">{sup.items.length} items — ${sup.totalEstimado.toFixed(2)}</p>
+                  <p className="text-sm text-slate-500">
+                    {sup.items.length} items — ${sup.totalEstimado.toFixed(2)}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 {sup.completado ? (
-                  <Badge className="bg-emerald-100 text-emerald-700 text-sm px-3 py-1">Completado</Badge>
+                  <Badge className="bg-emerald-100 text-emerald-700 text-sm px-3 py-1">
+                    Completado
+                  </Badge>
                 ) : (
                   <Badge variant="outline" className="text-sm px-3 py-1">
                     {sup.items.filter((i) => i.comprado).length}/{sup.items.length}
                   </Badge>
                 )}
-                {expanded === sup.proveedor.id ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                {expanded === sup.proveedor.id ? (
+                  <ChevronUp className="h-5 w-5" />
+                ) : (
+                  <ChevronDown className="h-5 w-5" />
+                )}
               </div>
             </div>
           </CardHeader>
@@ -170,10 +219,18 @@ export function RutaChofer(): JSX.Element {
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <p className="font-medium text-base">{item.producto?.nombre || item.insumo?.nombre}</p>
+                      <p className="font-medium text-base">
+                        {item.producto?.nombre || item.insumo?.nombre}
+                      </p>
                       <p className="text-sm text-slate-500">
-                        <Badge variant={item.area === 'MOS' ? 'default' : 'secondary'} className="mr-2">{item.area}</Badge>
-                        Solicitado: {Number(item.cantidadSolicitada)} — Est: ${Number(item.precioEstimado).toFixed(2)}
+                        <Badge
+                          variant={item.area === 'MOS' ? 'default' : 'secondary'}
+                          className="mr-2"
+                        >
+                          {item.area}
+                        </Badge>
+                        Solicitado: {Number(item.cantidadSolicitada)} — Est: $
+                        {Number(item.precioEstimado).toFixed(2)}
                       </p>
                     </div>
                     {item.comprado && <CheckCircle2 className="h-6 w-6 text-emerald-600" />}
@@ -188,7 +245,12 @@ export function RutaChofer(): JSX.Element {
                           step="0.1"
                           className="h-12 text-lg"
                           value={itemValues[item.id]?.qty ?? ''}
-                          onChange={(e) => setItemValues({ ...itemValues, [item.id]: { ...itemValues[item.id], qty: Number(e.target.value) } })}
+                          onChange={(e) =>
+                            setItemValues({
+                              ...itemValues,
+                              [item.id]: { ...itemValues[item.id], qty: Number(e.target.value) },
+                            })
+                          }
                         />
                       </div>
                       <div className="space-y-1">
@@ -198,7 +260,12 @@ export function RutaChofer(): JSX.Element {
                           step="0.01"
                           className="h-12 text-lg"
                           value={itemValues[item.id]?.price ?? ''}
-                          onChange={(e) => setItemValues({ ...itemValues, [item.id]: { ...itemValues[item.id], price: Number(e.target.value) } })}
+                          onChange={(e) =>
+                            setItemValues({
+                              ...itemValues,
+                              [item.id]: { ...itemValues[item.id], price: Number(e.target.value) },
+                            })
+                          }
                         />
                       </div>
                       <Button
@@ -206,7 +273,14 @@ export function RutaChofer(): JSX.Element {
                         disabled={saving === item.id}
                         className="h-12 px-6 bg-slate-900 col-span-2 sm:col-span-1 min-h-[44px]"
                       >
-                        {saving === item.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Check className="h-5 w-5 mr-2 sm:mr-0" /><span className="sm:hidden">Registrar</span></>}
+                        {saving === item.id ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <>
+                            <Check className="h-5 w-5 mr-2 sm:mr-0" />
+                            <span className="sm:hidden">Registrar</span>
+                          </>
+                        )}
                       </Button>
                     </div>
                   )}
@@ -217,7 +291,11 @@ export function RutaChofer(): JSX.Element {
         </Card>
       ))}
 
-      {!ruta && <p className="text-center text-slate-400 py-12">Selecciona una orden de compra para ver la ruta</p>}
+      {!ruta && (
+        <p className="text-center text-slate-400 py-12">
+          Selecciona una orden de compra para ver la ruta
+        </p>
+      )}
     </div>
   );
 }

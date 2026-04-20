@@ -9,7 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Save, Send, Search, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -56,7 +63,7 @@ function getCurrentWeek(): string {
   const start = new Date(now.getFullYear(), 0, 1);
   const diff = now.getTime() - start.getTime();
   const oneWeek = 604800000;
-  const weekNum = Math.ceil((diff / oneWeek) + start.getDay() / 7);
+  const weekNum = Math.ceil(diff / oneWeek + start.getDay() / 7);
   return `${now.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
 }
 
@@ -145,9 +152,15 @@ export function RequisicionInsForm(): JSX.Element {
     }
   }, [semana, user?.sucursalId]);
 
-  useEffect(() => { loadInsumos(); }, [loadInsumos]);
-  useEffect(() => { loadBudget(); }, [loadBudget]);
-  useEffect(() => { loadExisting(); }, [loadExisting]);
+  useEffect(() => {
+    loadInsumos();
+  }, [loadInsumos]);
+  useEffect(() => {
+    loadBudget();
+  }, [loadBudget]);
+  useEffect(() => {
+    loadExisting();
+  }, [loadExisting]);
 
   // Calculate totals
   const spent = useMemo(() => {
@@ -169,10 +182,11 @@ export function RequisicionInsForm(): JSX.Element {
   const filteredInsumos = useMemo(() => {
     if (!searchTerm.trim()) return insumos;
     const term = searchTerm.toLowerCase();
-    return insumos.filter((i) =>
-      i.nombre.toLowerCase().includes(term) ||
-      i.codigo.toLowerCase().includes(term) ||
-      (i.categoria?.nombre || '').toLowerCase().includes(term)
+    return insumos.filter(
+      (i) =>
+        i.nombre.toLowerCase().includes(term) ||
+        i.codigo.toLowerCase().includes(term) ||
+        (i.categoria?.nombre || '').toLowerCase().includes(term),
     );
   }, [insumos, searchTerm]);
 
@@ -223,7 +237,9 @@ export function RequisicionInsForm(): JSX.Element {
         if (submit) await api.post(`/requisiciones/${newId}/enviar`);
       }
 
-      toast.success(submit ? 'Requisicion enviada para aprobacion' : 'Requisicion guardada como borrador');
+      toast.success(
+        submit ? 'Requisicion enviada para aprobacion' : 'Requisicion guardada como borrador',
+      );
       if (submit) setEstado('ENVIADA');
     } catch {
       toast.error('Error al guardar');
@@ -257,12 +273,19 @@ export function RequisicionInsForm(): JSX.Element {
                   disabled={isReadOnly}
                 />
               </div>
-              <Badge className={
-                estado === 'BORRADOR' ? 'bg-slate-100 text-slate-700' :
-                estado === 'ENVIADA' ? 'bg-amber-100 text-amber-700' :
-                estado === 'APROBADA' ? 'bg-emerald-100 text-emerald-700' :
-                'bg-red-100 text-red-700'
-              }>{estado}</Badge>
+              <Badge
+                className={
+                  estado === 'BORRADOR'
+                    ? 'bg-slate-100 text-slate-700'
+                    : estado === 'ENVIADA'
+                      ? 'bg-amber-100 text-amber-700'
+                      : estado === 'APROBADA'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-red-100 text-red-700'
+                }
+              >
+                {estado}
+              </Badge>
             </div>
           </div>
         </CardHeader>
@@ -282,9 +305,21 @@ export function RequisicionInsForm(): JSX.Element {
       {budget && (
         <div className="sticky top-14 md:top-0 z-30 bg-white/90 backdrop-blur-sm border-b p-3 mb-4 rounded-lg border">
           <div className="flex items-center justify-between text-sm">
-            <span>Presupuesto: <b>{formatCurrency(budgetAmount)}</b></span>
-            <span>Gastado: <b className={overBudget ? 'text-red-600' : 'text-slate-900'}>{formatCurrency(spent)}</b></span>
-            <span>Disponible: <b className={overBudget ? 'text-red-600' : 'text-emerald-600'}>{formatCurrency(remaining)}</b></span>
+            <span>
+              Presupuesto: <b>{formatCurrency(budgetAmount)}</b>
+            </span>
+            <span>
+              Gastado:{' '}
+              <b className={overBudget ? 'text-red-600' : 'text-slate-900'}>
+                {formatCurrency(spent)}
+              </b>
+            </span>
+            <span>
+              Disponible:{' '}
+              <b className={overBudget ? 'text-red-600' : 'text-emerald-600'}>
+                {formatCurrency(remaining)}
+              </b>
+            </span>
           </div>
           <div className="w-full bg-slate-100 rounded-full h-2 mt-2">
             <div
@@ -320,51 +355,55 @@ export function RequisicionInsForm(): JSX.Element {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredInsumos.length ? filteredInsumos.map((ins) => {
-              const item = itemsMap[ins.id];
-              const cantidad = item?.cantidad || 0;
-              const costo = Number(ins.costoUnitario);
-              const subtotal = cantidad * costo;
-              const isDisplay = ins.presentacion === 'Display';
+            {filteredInsumos.length ? (
+              filteredInsumos.map((ins) => {
+                const item = itemsMap[ins.id];
+                const cantidad = item?.cantidad || 0;
+                const costo = Number(ins.costoUnitario);
+                const subtotal = cantidad * costo;
+                const isDisplay = ins.presentacion === 'Display';
 
-              return (
-                <TableRow key={ins.id} className={cantidad > 0 ? 'bg-blue-50/50' : ''}>
-                  <TableCell className="font-medium">{ins.nombre}</TableCell>
-                  <TableCell>
-                    {ins.categoria?.nombre ? (
-                      <Badge variant="outline" className="text-xs">{ins.categoria.nombre}</Badge>
-                    ) : (
-                      <span className="text-slate-400 text-xs">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-xs text-slate-600">{ins.unidad}</TableCell>
-                  <TableCell>{formatCurrency(costo)}</TableCell>
-                  <TableCell>
-                    {isReadOnly ? (
-                      <span>{cantidad}</span>
-                    ) : (
-                      <Input
-                        type="number"
-                        step={isDisplay ? '1' : '0.1'}
-                        min="0"
-                        value={cantidad || ''}
-                        onChange={(e) => {
-                          const val = isDisplay
-                            ? Math.floor(Number(e.target.value))
-                            : Number(e.target.value);
-                          updateCantidad(ins.id, Math.max(0, val));
-                        }}
-                        placeholder="0"
-                        className="w-24 h-8"
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell className={subtotal > 0 ? 'font-medium' : 'text-slate-400'}>
-                    {subtotal > 0 ? formatCurrency(subtotal) : '—'}
-                  </TableCell>
-                </TableRow>
-              );
-            }) : (
+                return (
+                  <TableRow key={ins.id} className={cantidad > 0 ? 'bg-blue-50/50' : ''}>
+                    <TableCell className="font-medium">{ins.nombre}</TableCell>
+                    <TableCell>
+                      {ins.categoria?.nombre ? (
+                        <Badge variant="outline" className="text-xs">
+                          {ins.categoria.nombre}
+                        </Badge>
+                      ) : (
+                        <span className="text-slate-400 text-xs">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-600">{ins.unidad}</TableCell>
+                    <TableCell>{formatCurrency(costo)}</TableCell>
+                    <TableCell>
+                      {isReadOnly ? (
+                        <span>{cantidad}</span>
+                      ) : (
+                        <Input
+                          type="number"
+                          step={isDisplay ? '1' : '0.1'}
+                          min="0"
+                          value={cantidad || ''}
+                          onChange={(e) => {
+                            const val = isDisplay
+                              ? Math.floor(Number(e.target.value))
+                              : Number(e.target.value);
+                            updateCantidad(ins.id, Math.max(0, val));
+                          }}
+                          placeholder="0"
+                          className="w-24 h-8"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell className={subtotal > 0 ? 'font-medium' : 'text-slate-400'}>
+                      {subtotal > 0 ? formatCurrency(subtotal) : '—'}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
               <TableRow>
                 <TableCell colSpan={6} className="h-16 text-center text-slate-500">
                   {searchTerm ? 'No se encontraron insumos' : 'Sin insumos disponibles'}
@@ -379,8 +418,12 @@ export function RequisicionInsForm(): JSX.Element {
       {overBudget && (
         <Card className="border-red-200 bg-red-50 mt-4">
           <CardContent className="py-4">
-            <p className="text-sm font-semibold text-red-800">El monto excede el presupuesto aprobado</p>
-            <p className="text-xs text-red-600 mb-2">Debes incluir una justificacion para enviar la requisicion.</p>
+            <p className="text-sm font-semibold text-red-800">
+              El monto excede el presupuesto aprobado
+            </p>
+            <p className="text-xs text-red-600 mb-2">
+              Debes incluir una justificacion para enviar la requisicion.
+            </p>
             <Textarea
               placeholder="Justificacion del exceso de presupuesto..."
               value={justificacion}

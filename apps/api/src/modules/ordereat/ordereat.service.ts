@@ -355,6 +355,86 @@ export class OrdereatService {
   }
 
   /**
+   * Import top-sold items from OrderEat as Platillo records.
+   * Pulls last N days of sales, picks top-K by revenue, upserts Platillos
+   * with estimated cost (40% of avgItemCost or sale price).
+   */
+  async importPlatillosFromOrderEat(sucursalId: string, days = 7, topK = 20): Promise<{
+    data: {
+      sucursalCodigo: string;
+      periodo: string;
+      total: number;
+      created: number;
+      updated: number;
+      skipped: number;
+    };
+    message: string;
+  }> {
+    const { cafeteriaId, token } = await this.resolveAuthForSucursal(sucursalId);
+    const suc = await this.prisma.sucursal.findUnique({ where: { id: sucursalId }, select: { codigo: true } });
+    if (!suc) throw new NotFoundException('Sucursal no encontrada');
+
+    const now = new Date();
+    const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const until = now.toISOString().slice(0, 10);
+
+    type OeSale = { productId?: number; quantity: number; price: number; avgItemCost?: number | null; type: string };
+    type OeProduct = { id: number; name: string };
+    const [salesRes, products] = await Promise.all([
+      this.apiGet<{ items: OeSale[] }>(token, `/cafeterias/${cafeteriaId}/reports/sales/products`, {
+        from, until, dateFilterType: 'ORDER_DATE',
+      }),
+      this.apiGet<OeProduct[]>(token, `/cafeterias/${cafeteriaId}/products`),
+    ]);
+    const nameById = new Map(products.map(p => [p.id, p.name]));
+
+    const byTotal = salesRes.items
+      .filter(s => s.type === 'PRODUCT' && s.productId)
+      .sort((a, b) => (b.quantity * b.price) - (a.quantity * a.price))
+      .slice(0, topK);
+
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+
+    for (const s of byTotal) {
+      const nombre = nameById.get(s.productId!) || `Producto ${s.productId}`;
+      const costoFromApi = Number(s.avgItemCost);
+      const costo = costoFromApi > 0 ? costoFromApi : Number(s.price) * 0.4;
+      const precio = Number(s.price);
+      if (!(costo > 0)) {
+        skipped++;
+        continue;
+      }
+      const existing = await this.prisma.platillo.findUnique({ where: { nombre } });
+      if (existing) {
+        await this.prisma.platillo.update({
+          where: { nombre },
+          data: { costo: costo.toFixed(2), precio: precio.toFixed(2) },
+        });
+        updated++;
+      } else {
+        await this.prisma.platillo.create({
+          data: { nombre, costo: costo.toFixed(2), precio: precio.toFixed(2), activo: true },
+        });
+        created++;
+      }
+    }
+
+    return {
+      data: {
+        sucursalCodigo: suc.codigo,
+        periodo: `${from} — ${until}`,
+        total: byTotal.length,
+        created,
+        updated,
+        skipped,
+      },
+      message: `${suc.codigo}: ${created} platillos nuevos, ${updated} actualizados`,
+    };
+  }
+
+  /**
    * Parse OrderEat Sales Report Excel
    * Returns: array of { producto, cantidadVendida, precioUnitario, costoUnitario, totalVendido }
    */

@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OrdereatService } from '../ordereat/ordereat.service';
 import { CreateRecepcionDto } from './dto/create-recepcion.dto';
@@ -199,16 +204,31 @@ export class RecepcionesService {
   /**
    * Push reception items to OrderEat as IN stock movements.
    * Only MOS items with ordereatId and positive received quantity are sent.
+   * Idempotent: if already pushed, returns 409 with the existing push timestamp.
    */
-  async pushToOrderEat(recepcionId: string) {
+  async pushToOrderEat(recepcionId: string, userEmail: string) {
+    // Idempotency check: already pushed?
+    const existing = await this.prisma.recepcion.findUnique({
+      where: { id: recepcionId },
+      select: { pushedToOrderEatAt: true, pushedToOrderEatBy: true },
+    });
+    if (!existing) throw new NotFoundException('Recepcion no encontrada');
+    if (existing.pushedToOrderEatAt) {
+      throw new ConflictException(
+        `Esta recepcion ya fue enviada a OrderEat (${existing.pushedToOrderEatAt.toISOString().slice(0, 16)} por ${existing.pushedToOrderEatBy || 'desconocido'}). No se puede reenviar.`,
+      );
+    }
+
     const preview = await this.previewPushToOrderEat(recepcionId);
     const { eligible, sucursalId, sucursalCodigo, skipped } = preview.data;
 
     if (eligible.length === 0) {
-      throw new BadRequestException(`No hay items elegibles para enviar. Revisados: ${skipped.length}`);
+      throw new BadRequestException(
+        `No hay items elegibles para enviar. Revisados: ${skipped.length}`,
+      );
     }
 
-    const movements = eligible.map(e => ({
+    const movements = eligible.map((e) => ({
       productId: e.ordereatProductId,
       amount: e.amountPieces,
       description: `Recepcion ${recepcionId.slice(0, 8)} — ${sucursalCodigo}`,
@@ -216,6 +236,15 @@ export class RecepcionesService {
     }));
 
     const result = await this.ordereat.pushStockMovementsForSucursal(sucursalId, movements);
+
+    // Mark as pushed — must happen after the API call succeeds
+    await this.prisma.recepcion.update({
+      where: { id: recepcionId },
+      data: {
+        pushedToOrderEatAt: new Date(),
+        pushedToOrderEatBy: userEmail,
+      },
+    });
 
     return {
       data: {

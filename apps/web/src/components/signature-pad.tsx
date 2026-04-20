@@ -54,7 +54,10 @@ export function SignaturePad({ onSignatureChange, height = 200 }: SignaturePadPr
       const touch = e.touches[0];
       return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
     }
-    return { x: (e as React.MouseEvent).clientX - rect.left, y: (e as React.MouseEvent).clientY - rect.top };
+    return {
+      x: (e as React.MouseEvent).clientX - rect.left,
+      y: (e as React.MouseEvent).clientY - rect.top,
+    };
   };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
@@ -112,7 +115,13 @@ export function SignaturePad({ onSignatureChange, height = 200 }: SignaturePadPr
         onTouchMove={draw}
         onTouchEnd={stopDrawing}
       />
-      <Button type="button" variant="outline" size="sm" onClick={clear} className="w-full sm:w-auto min-h-[44px]">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={clear}
+        className="w-full sm:w-auto min-h-[44px]"
+      >
         Limpiar
       </Button>
     </div>

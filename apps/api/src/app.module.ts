@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from './prisma/prisma.module';
 import { CryptoModule } from './common/utils/crypto.module';
+import { JobsModule } from './modules/jobs/jobs.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { SucursalesModule } from './modules/sucursales/sucursales.module';
@@ -25,6 +26,7 @@ import { RequisicionMosModule } from './modules/requisicion-mos/requisicion-mos.
   imports: [
     PrismaModule,
     CryptoModule,
+    JobsModule,
     AuthModule,
     UsuariosModule,
     SucursalesModule,

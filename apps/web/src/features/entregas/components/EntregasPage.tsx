@@ -6,12 +6,26 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { SelectEmpty } from '@/components/ui/select-empty';
 import { Eye, Plus, Loader2, Truck, FileDown, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 
 interface Sucursal {
   id: string;
@@ -62,6 +76,7 @@ export function EntregasPage(): JSX.Element {
 
   const [detail, setDetail] = useState<OrdenEntregaDetail | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [confirmGenerarOpen, setConfirmGenerarOpen] = useState(false);
 
   const loadEntregas = useCallback(async (): Promise<void> => {
     try {
@@ -102,6 +117,14 @@ export function EntregasPage(): JSX.Element {
       loadOcsCompletadas();
     }
   }, [isAdminOrSupervisor, loadSucursales, loadOcsCompletadas]);
+
+  const openConfirmGenerar = (): void => {
+    if (!selectedOcId) {
+      toast.error('Selecciona una Orden de Compra completada');
+      return;
+    }
+    setConfirmGenerarOpen(true);
+  };
 
   const generarEntregas = async (): Promise<void> => {
     if (!selectedOcId) {
@@ -153,9 +176,19 @@ export function EntregasPage(): JSX.Element {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="space-y-1 w-full sm:w-auto">
                 <label className="text-xs text-slate-500">Orden de Compra Completada</label>
-                <Select value={selectedOcId} onValueChange={setSelectedOcId} disabled={ocsCompletadas.length === 0}>
+                <Select
+                  value={selectedOcId}
+                  onValueChange={setSelectedOcId}
+                  disabled={ocsCompletadas.length === 0}
+                >
                   <SelectTrigger className="w-full sm:w-72 min-h-[44px]">
-                    <SelectValue placeholder={ocsCompletadas.length === 0 ? 'Sin OCs completadas' : 'Seleccionar OC completada'} />
+                    <SelectValue
+                      placeholder={
+                        ocsCompletadas.length === 0
+                          ? 'Sin OCs completadas'
+                          : 'Seleccionar OC completada'
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {ocsCompletadas.length === 0 ? (
@@ -175,7 +208,7 @@ export function EntregasPage(): JSX.Element {
                 </Select>
               </div>
               <Button
-                onClick={generarEntregas}
+                onClick={openConfirmGenerar}
                 disabled={generating}
                 className="w-full sm:w-auto min-h-[44px]"
               >
@@ -188,7 +221,8 @@ export function EntregasPage(): JSX.Element {
               </Button>
             </div>
             <p className="text-xs text-slate-400 mt-2">
-              Se generaran ordenes de entrega por sucursal a partir de la OC completada seleccionada.
+              Se generaran ordenes de entrega por sucursal a partir de la OC completada
+              seleccionada.
             </p>
           </CardContent>
         </Card>
@@ -198,7 +232,10 @@ export function EntregasPage(): JSX.Element {
       {isAdminOrSupervisor && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <label className="text-sm text-slate-600 font-medium">Filtrar por sucursal:</label>
-          <Select value={filterSucursalId} onValueChange={(v) => setFilterSucursalId(v === 'all' ? '' : v)}>
+          <Select
+            value={filterSucursalId}
+            onValueChange={(v) => setFilterSucursalId(v === 'all' ? '' : v)}
+          >
             <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
               <SelectValue placeholder="Todas" />
             </SelectTrigger>
@@ -258,7 +295,21 @@ export function EntregasPage(): JSX.Element {
                       size="icon"
                       className="min-h-[44px] min-w-[44px]"
                       title="Descargar PDF"
-                      onClick={async () => { try { const r = await api.get(`/ordenes-entrega/${e.id}/pdf`, { responseType: 'blob' }); const url = window.URL.createObjectURL(new Blob([r.data])); const a = document.createElement('a'); a.href = url; a.download = `entrega_${e.sucursal?.codigo}.pdf`; a.click(); window.URL.revokeObjectURL(url); } catch { toast.error('Error al generar PDF'); } }}
+                      onClick={async () => {
+                        try {
+                          const r = await api.get(`/ordenes-entrega/${e.id}/pdf`, {
+                            responseType: 'blob',
+                          });
+                          const url = window.URL.createObjectURL(new Blob([r.data]));
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `entrega_${e.sucursal?.codigo}.pdf`;
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                        } catch {
+                          toast.error('Error al generar PDF');
+                        }
+                      }}
                     >
                       <FileDown className="h-4 w-4 text-red-500" />
                     </Button>
@@ -268,7 +319,11 @@ export function EntregasPage(): JSX.Element {
             ) : (
               <TableRow>
                 <TableCell colSpan={5} className="h-32 text-center">
-                  <div className="flex flex-col items-center gap-2 text-slate-400"><Truck className="h-8 w-8" /><p className="text-sm font-medium">No hay ordenes de entrega</p><p className="text-xs">Genera entregas desde una OC completada</p></div>
+                  <div className="flex flex-col items-center gap-2 text-slate-400">
+                    <Truck className="h-8 w-8" />
+                    <p className="text-sm font-medium">No hay ordenes de entrega</p>
+                    <p className="text-xs">Genera entregas desde una OC completada</p>
+                  </div>
                 </TableCell>
               </TableRow>
             )}
@@ -293,7 +348,8 @@ export function EntregasPage(): JSX.Element {
           {detail && (
             <div className="space-y-4">
               <p className="text-sm text-slate-500">
-                Fecha: {new Date(detail.fecha).toLocaleDateString('es-MX')} | OC: {detail.ordenCompra.folio}
+                Fecha: {new Date(detail.fecha).toLocaleDateString('es-MX')} | OC:{' '}
+                {detail.ordenCompra.folio}
               </p>
 
               {/* MOS items */}
@@ -371,6 +427,16 @@ export function EntregasPage(): JSX.Element {
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmGenerarOpen}
+        onOpenChange={setConfirmGenerarOpen}
+        onConfirm={generarEntregas}
+        variant="warning"
+        title="Generar entregas"
+        description="Se crearan ordenes de entrega por sucursal a partir de la OC completada. No se puede deshacer facilmente."
+        confirmLabel="Generar"
+      />
     </div>
   );
 }

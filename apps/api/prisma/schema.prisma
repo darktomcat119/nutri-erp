@@ -479,13 +479,15 @@ model OrdenEntregaItem {
 // RECEPTION
 // ============================================
 model Recepcion {
-  id             String   @id @default(uuid())
-  ordenEntregaId String   @unique @map("orden_entrega_id")
-  sucursalId     String   @map("sucursal_id")
-  recibidoPorId  String   @map("recibido_por_id")
-  firmaDigital   String?  @map("firma_digital")
-  notas          String?
-  createdAt      DateTime @default(now()) @map("created_at")
+  id                   String    @id @default(uuid())
+  ordenEntregaId       String    @unique @map("orden_entrega_id")
+  sucursalId           String    @map("sucursal_id")
+  recibidoPorId        String    @map("recibido_por_id")
+  firmaDigital         String?   @map("firma_digital")
+  notas                String?
+  pushedToOrderEatAt   DateTime? @map("pushed_to_ordereat_at")
+  pushedToOrderEatBy   String?   @map("pushed_to_ordereat_by")
+  createdAt            DateTime  @default(now()) @map("created_at")
 
   ordenEntrega OrdenEntrega    @relation(fields: [ordenEntregaId], references: [id])
   sucursal     Sucursal        @relation(fields: [sucursalId], references: [id])

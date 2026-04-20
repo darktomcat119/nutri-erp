@@ -63,7 +63,13 @@ export function LoginForm(): JSX.Element {
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0">
-        <Image src="/assets/images/dark-abstract.jpg" alt="" fill className="object-cover scale-110" priority />
+        <Image
+          src="/assets/images/dark-abstract.jpg"
+          alt=""
+          fill
+          className="object-cover scale-110"
+          priority
+        />
         <div className="absolute inset-0 bg-gradient-to-br from-slate-950/95 via-slate-900/90 to-blue-950/80" />
       </div>
 
@@ -94,9 +100,7 @@ export function LoginForm(): JSX.Element {
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-2xl shadow-2xl shadow-black/20 p-7 sm:p-8">
           <div className="mb-7">
             <h2 className="text-lg font-semibold text-white tracking-tight">Iniciar Sesion</h2>
-            <p className="text-[13px] text-slate-500 mt-1">
-              Ingresa tus credenciales para acceder
-            </p>
+            <p className="text-[13px] text-slate-500 mt-1">Ingresa tus credenciales para acceder</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -149,7 +153,9 @@ export function LoginForm(): JSX.Element {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.password && <p className="text-[11px] text-red-400">{errors.password.message}</p>}
+              {errors.password && (
+                <p className="text-[11px] text-red-400">{errors.password.message}</p>
+              )}
             </div>
 
             <Button
@@ -173,8 +179,7 @@ export function LoginForm(): JSX.Element {
 
           <div className="mt-7 pt-5 border-t border-white/[0.06]">
             <p className="text-[11px] text-slate-600 text-center leading-relaxed">
-              ¿Olvidaste tu contrasena? Contacta al administrador
-              del sistema para restablecerla.
+              ¿Olvidaste tu contrasena? Contacta al administrador del sistema para restablecerla.
             </p>
           </div>
         </div>

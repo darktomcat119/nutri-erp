@@ -20,7 +20,12 @@ export function LoadingInline({
   className?: string;
 }): JSX.Element {
   return (
-    <div className={cn('flex items-center justify-center gap-2.5 py-8 text-sm text-slate-500', className)}>
+    <div
+      className={cn(
+        'flex items-center justify-center gap-2.5 py-8 text-sm text-slate-500',
+        className,
+      )}
+    >
       <Spinner size="default" />
       <span>{label}</span>
     </div>

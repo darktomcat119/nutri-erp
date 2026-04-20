@@ -6,7 +6,10 @@ import { PresupuestoInsPage } from '@/features/presupuesto-ins/components/Presup
 export default function Page(): JSX.Element {
   return (
     <div>
-      <PageHeader title="Presupuesto Insumos" description="Generacion y aprobacion de presupuestos semanales basados en ventas de OrderEat" />
+      <PageHeader
+        title="Presupuesto Insumos"
+        description="Generacion y aprobacion de presupuestos semanales basados en ventas de OrderEat"
+      />
       <PresupuestoInsPage />
     </div>
   );

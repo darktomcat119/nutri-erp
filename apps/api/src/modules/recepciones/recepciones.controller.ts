@@ -54,7 +54,7 @@ export class RecepcionesController {
   @Post(':id/push-to-ordereat')
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @ApiOperation({ summary: 'Enviar cantidades recibidas a OrderEat como movimientos IN' })
-  async pushToOrderEat(@Param('id') id: string) {
-    return this.recepcionesService.pushToOrderEat(id);
+  async pushToOrderEat(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.recepcionesService.pushToOrderEat(id, user.email);
   }
 }

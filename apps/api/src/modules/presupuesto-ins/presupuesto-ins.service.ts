@@ -125,19 +125,35 @@ export class PresupuestoInsService {
 
     montoCalculado = Math.round(montoCalculado * 100) / 100;
 
-    // Upsert by (semana, sucursalId)
-    const existing = await this.prisma.presupuestoIns.findUnique({
-      where: { semana_sucursalId: { semana, sucursalId } },
-    });
-    if (existing) {
-      if (existing.estado === 'APROBADO') {
-        throw new BadRequestException('No se puede regenerar un presupuesto ya aprobado. Rechazalo primero.');
-      }
-      await this.prisma.presupuestoInsDetalle.deleteMany({ where: { presupuestoInsId: existing.id } });
-    }
+    // Upsert by (semana, sucursalId) — wrapped in a transaction so the delete + create
+    // cannot leave the presupuesto in a partial state if the insert fails.
+    const detallesCreate = matched.map((m) => ({
+      productoVendido: m.productoVendido,
+      cantidadVendida: m.cantidadVendida,
+      costoPlatillo: new Decimal(m.costoPlatillo.toFixed(2)),
+      subtotal: new Decimal(m.subtotal.toFixed(2)),
+      vinculado: true,
+    }));
+    const includeShape = {
+      sucursal: true,
+      generadoPor: { select: { id: true, nombre: true, email: true } },
+      detalles: true,
+    } as const;
 
-    const presupuesto = existing
-      ? await this.prisma.presupuestoIns.update({
+    const presupuesto = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.presupuestoIns.findUnique({
+        where: { semana_sucursalId: { semana, sucursalId } },
+      });
+      if (existing) {
+        if (existing.estado === 'APROBADO') {
+          throw new BadRequestException(
+            'No se puede regenerar un presupuesto ya aprobado. Rechazalo primero.',
+          );
+        }
+        await tx.presupuestoInsDetalle.deleteMany({
+          where: { presupuestoInsId: existing.id },
+        });
+        return tx.presupuestoIns.update({
           where: { id: existing.id },
           data: {
             fechaEjecucion,
@@ -145,46 +161,24 @@ export class PresupuestoInsService {
             montoCalculado: new Decimal(montoCalculado.toFixed(2)),
             generadoPorId: userId,
             estado: 'BORRADOR',
-            detalles: {
-              create: matched.map((m) => ({
-                productoVendido: m.productoVendido,
-                cantidadVendida: m.cantidadVendida,
-                costoPlatillo: new Decimal(m.costoPlatillo.toFixed(2)),
-                subtotal: new Decimal(m.subtotal.toFixed(2)),
-                vinculado: true,
-              })),
-            },
+            detalles: { create: detallesCreate },
           },
-          include: {
-            sucursal: true,
-            generadoPor: { select: { id: true, nombre: true, email: true } },
-            detalles: true,
-          },
-        })
-      : await this.prisma.presupuestoIns.create({
-          data: {
-            semana,
-            sucursalId,
-            fechaEjecucion,
-            periodoVentas,
-            montoCalculado: new Decimal(montoCalculado.toFixed(2)),
-            generadoPorId: userId,
-            detalles: {
-              create: matched.map((m) => ({
-                productoVendido: m.productoVendido,
-                cantidadVendida: m.cantidadVendida,
-                costoPlatillo: new Decimal(m.costoPlatillo.toFixed(2)),
-                subtotal: new Decimal(m.subtotal.toFixed(2)),
-                vinculado: true,
-              })),
-            },
-          },
-          include: {
-            sucursal: true,
-            generadoPor: { select: { id: true, nombre: true, email: true } },
-            detalles: true,
-          },
+          include: includeShape,
         });
+      }
+      return tx.presupuestoIns.create({
+        data: {
+          semana,
+          sucursalId,
+          fechaEjecucion,
+          periodoVentas,
+          montoCalculado: new Decimal(montoCalculado.toFixed(2)),
+          generadoPorId: userId,
+          detalles: { create: detallesCreate },
+        },
+        include: includeShape,
+      });
+    });
 
     return {
       data: {

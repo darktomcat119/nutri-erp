@@ -1,16 +1,35 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  flexRender,
+  type ColumnDef,
+  type SortingState,
+} from '@tanstack/react-table';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Pencil, Plus, ToggleLeft, ToggleRight } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableContainer,
+} from '@/components/ui/table';
+import { SortableHeader } from '@/components/ui/sortable-header';
+import { Pencil, Plus, ToggleLeft, ToggleRight, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { TableSkeletonRows } from '@/components/ui/table-skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface Categoria {
   id: string;
@@ -27,22 +46,29 @@ const TABS = [
 export function CategoriasPage(): JSX.Element {
   const [tab, setTab] = useState<string>('MOS');
   const [data, setData] = useState<Categoria[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Categoria | null>(null);
   const [nombre, setNombre] = useState('');
   const [toggleId, setToggleId] = useState<string | null>(null);
   const [toggleCategoria, setToggleCategoria] = useState<Categoria | null>(null);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const load = useCallback(async (): Promise<void> => {
+    setLoading(true);
     try {
       const res = await api.get(`/categorias?tipo=${tab}`);
       setData(res.data.data || res.data || []);
     } catch {
       toast.error('Error al cargar categorias');
+    } finally {
+      setLoading(false);
     }
   }, [tab]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const openCreate = (): void => {
     setEditing(null);
@@ -93,6 +119,69 @@ export function CategoriasPage(): JSX.Element {
 
   const filtered = data;
 
+  const columns: ColumnDef<Categoria>[] = [
+    {
+      accessorKey: 'nombre',
+      header: ({ column }) => <SortableHeader column={column}>Nombre</SortableHeader>,
+      cell: ({ row }) => <span className="font-medium">{row.original.nombre}</span>,
+    },
+    {
+      accessorKey: 'tipo',
+      header: ({ column }) => <SortableHeader column={column}>Tipo</SortableHeader>,
+      cell: ({ row }) => row.original.tipo,
+    },
+    {
+      accessorKey: 'activo',
+      header: ({ column }) => <SortableHeader column={column}>Estado</SortableHeader>,
+      cell: ({ row }) => (
+        <Badge variant={row.original.activo ? 'default' : 'secondary'}>
+          {row.original.activo ? 'Activo' : 'Inactivo'}
+        </Badge>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Acciones',
+      cell: ({ row }) => {
+        const cat = row.original;
+        return (
+          <div className="flex gap-1">
+            <Button variant="ghost" size="icon" onClick={() => openEdit(cat)} title="Editar">
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setToggleId(cat.id);
+                setToggleCategoria(cat);
+              }}
+              title={cat.activo ? 'Desactivar' : 'Activar'}
+            >
+              {cat.activo ? (
+                <ToggleRight className="h-4 w-4 text-green-600" />
+              ) : (
+                <ToggleLeft className="h-4 w-4 text-slate-400" />
+              )}
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
+
+  const table = useReactTable({
+    data: filtered,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    state: { sorting },
+    onSortingChange: setSorting,
+    initialState: {
+      sorting: [{ id: 'nombre', desc: false }],
+    },
+  });
+
   return (
     <div>
       {/* Tabs */}
@@ -118,55 +207,42 @@ export function CategoriasPage(): JSX.Element {
       </div>
 
       {/* Table */}
-      <div className="rounded-md border overflow-x-auto">
+      <TableContainer maxHeight="calc(100vh - 320px)">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Acciones</TableHead>
-            </TableRow>
+            {table.getHeaderGroups().map((hg) => (
+              <TableRow key={hg.id}>
+                {hg.headers.map((h) => (
+                  <TableHead key={h.id}>
+                    {flexRender(h.column.columnDef.header, h.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
           </TableHeader>
           <TableBody>
-            {filtered.length ? (
-              filtered.map((cat) => (
-                <TableRow key={cat.id}>
-                  <TableCell className="font-medium">{cat.nombre}</TableCell>
-                  <TableCell>
-                    <Badge variant={cat.activo ? 'default' : 'secondary'}>
-                      {cat.activo ? 'Activo' : 'Inactivo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(cat)} title="Editar">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => { setToggleId(cat.id); setToggleCategoria(cat); }}
-                        title={cat.activo ? 'Desactivar' : 'Activar'}
-                      >
-                        {cat.activo
-                          ? <ToggleRight className="h-4 w-4 text-green-600" />
-                          : <ToggleLeft className="h-4 w-4 text-slate-400" />
-                        }
-                      </Button>
-                    </div>
-                  </TableCell>
+            {loading ? (
+              <TableSkeletonRows rows={8} cols={columns.length} />
+            ) : table.getRowModel().rows.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={3} className="h-24 text-center text-slate-500">
-                  No hay categorias
+                <TableCell colSpan={columns.length} className="p-0">
+                  <EmptyState icon={Tag} title="No hay categorias" />
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-      </div>
+      </TableContainer>
 
       {/* Create/Edit Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
@@ -194,7 +270,12 @@ export function CategoriasPage(): JSX.Element {
       {/* Toggle Confirm Dialog */}
       <ConfirmDialog
         open={!!toggleId}
-        onOpenChange={(open) => { if (!open) { setToggleId(null); setToggleCategoria(null); } }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setToggleId(null);
+            setToggleCategoria(null);
+          }
+        }}
         onConfirm={handleToggle}
         title={toggleCategoria?.activo ? 'Desactivar categoria' : 'Activar categoria'}
         description={

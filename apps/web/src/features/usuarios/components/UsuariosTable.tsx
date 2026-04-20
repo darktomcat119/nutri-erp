@@ -6,8 +6,10 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   flexRender,
   type ColumnDef,
+  type SortingState,
 } from '@tanstack/react-table';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,7 +33,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableContainer,
 } from '@/components/ui/table';
+import { SortableHeader } from '@/components/ui/sortable-header';
 import {
   Select,
   SelectContent,
@@ -40,9 +44,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, Plus, Search, KeyRound } from 'lucide-react';
+import { Pencil, Trash2, Plus, Search, KeyRound, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { TableSkeletonRows } from '@/components/ui/table-skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,32 +78,43 @@ type UserFormData = z.infer<typeof userSchema>;
 
 export function UsuariosTable(): JSX.Element {
   const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
   const [filter, setFilter] = useState('');
+  const [sorting, setSorting] = useState<SortingState>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [resetUser, setResetUser] = useState<User | null>(null);
   const [newPassword, setNewPassword] = useState('');
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<UserFormData>({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
   });
 
   const loadData = useCallback(async (): Promise<void> => {
+    setLoading(true);
     try {
-      const [usersRes, sucRes] = await Promise.all([
-        api.get('/usuarios'),
-        api.get('/sucursales'),
-      ]);
+      const [usersRes, sucRes] = await Promise.all([api.get('/usuarios'), api.get('/sucursales')]);
       setUsers(usersRes.data.data);
       setSucursales(sucRes.data.data);
     } catch {
       toast.error('Error al cargar datos');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const openCreate = (): void => {
     setEditing(null);
@@ -148,7 +165,10 @@ export function UsuariosTable(): JSX.Element {
 
   const handleResetPassword = async (): Promise<void> => {
     if (!resetUser) return;
-    if (newPassword.length < 6) { toast.error('La contrasena debe tener al menos 6 caracteres'); return; }
+    if (newPassword.length < 6) {
+      toast.error('La contrasena debe tener al menos 6 caracteres');
+      return;
+    }
     try {
       await api.patch(`/usuarios/${resetUser.id}`, { password: newPassword });
       toast.success(`Contrasena de ${resetUser.nombre} restablecida`);
@@ -174,14 +194,18 @@ export function UsuariosTable(): JSX.Element {
   };
 
   const columns: ColumnDef<User>[] = [
-    { accessorKey: 'nombre', header: 'Nombre' },
-    { accessorKey: 'email', header: 'Email' },
+    {
+      accessorKey: 'nombre',
+      header: ({ column }) => <SortableHeader column={column}>Nombre</SortableHeader>,
+    },
+    {
+      accessorKey: 'email',
+      header: ({ column }) => <SortableHeader column={column}>Email</SortableHeader>,
+    },
     {
       accessorKey: 'role',
-      header: 'Rol',
-      cell: ({ row }) => (
-        <Badge variant="outline">{row.original.role}</Badge>
-      ),
+      header: ({ column }) => <SortableHeader column={column}>Rol</SortableHeader>,
+      cell: ({ row }) => <Badge variant="outline">{row.original.role}</Badge>,
     },
     {
       accessorKey: 'sucursal',
@@ -190,7 +214,7 @@ export function UsuariosTable(): JSX.Element {
     },
     {
       accessorKey: 'activo',
-      header: 'Activo',
+      header: ({ column }) => <SortableHeader column={column}>Activo</SortableHeader>,
       cell: ({ row }) => (
         <Badge variant={row.original.activo ? 'default' : 'secondary'}>
           {row.original.activo ? 'Si' : 'No'}
@@ -205,10 +229,20 @@ export function UsuariosTable(): JSX.Element {
           <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)} title="Editar">
             <Pencil className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setResetUser(row.original)} title="Restablecer contrasena">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setResetUser(row.original)}
+            title="Restablecer contrasena"
+          >
             <KeyRound className="h-4 w-4 text-amber-600" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setDeleteId(row.original.id)} title="Desactivar">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setDeleteId(row.original.id)}
+            title="Desactivar"
+          >
             <Trash2 className="h-4 w-4 text-red-500" />
           </Button>
         </div>
@@ -222,8 +256,14 @@ export function UsuariosTable(): JSX.Element {
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    state: { globalFilter: filter },
+    getSortedRowModel: getSortedRowModel(),
+    state: { globalFilter: filter, sorting },
     onGlobalFilterChange: setFilter,
+    onSortingChange: setSorting,
+    initialState: {
+      pagination: { pageSize: 20 },
+      sorting: [{ id: 'nombre', desc: false }],
+    },
   });
 
   const selectedRole = watch('role');
@@ -262,14 +302,23 @@ export function UsuariosTable(): JSX.Element {
                 {errors.email && <p className="text-xs text-red-600">{errors.email.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label>{editing ? 'Nueva Contrasena (dejar vacio para no cambiar)' : 'Contrasena'}</Label>
+                <Label>
+                  {editing ? 'Nueva Contrasena (dejar vacio para no cambiar)' : 'Contrasena'}
+                </Label>
                 <Input type="password" {...register('password')} />
-                {errors.password && <p className="text-xs text-red-600">{errors.password.message}</p>}
+                {errors.password && (
+                  <p className="text-xs text-red-600">{errors.password.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Rol</Label>
-                <Select value={selectedRole} onValueChange={(v) => setValue('role', v as UserFormData['role'])}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={selectedRole}
+                  onValueChange={(v) => setValue('role', v as UserFormData['role'])}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ADMIN">Administrador</SelectItem>
                     <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
@@ -278,17 +327,21 @@ export function UsuariosTable(): JSX.Element {
                   </SelectContent>
                 </Select>
               </div>
-              {(selectedRole === 'ENCARGADO') && (
+              {selectedRole === 'ENCARGADO' && (
                 <div className="space-y-2">
                   <Label>Sucursal</Label>
                   <Select
                     value={watch('sucursalId') || ''}
                     onValueChange={(v) => setValue('sucursalId', v)}
                   >
-                    <SelectTrigger><SelectValue placeholder="Seleccionar sucursal" /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar sucursal" />
+                    </SelectTrigger>
                     <SelectContent>
                       {sucursales.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.codigo} — {s.nombre}</SelectItem>
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.codigo} — {s.nombre}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -302,7 +355,7 @@ export function UsuariosTable(): JSX.Element {
         </Dialog>
       </div>
 
-      <div className="rounded-md border overflow-x-auto">
+      <TableContainer maxHeight="calc(100vh - 320px)">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -316,7 +369,9 @@ export function UsuariosTable(): JSX.Element {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.length ? (
+            {loading ? (
+              <TableSkeletonRows rows={8} cols={columns.length} />
+            ) : table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
@@ -328,14 +383,14 @@ export function UsuariosTable(): JSX.Element {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-slate-500">
-                  No hay usuarios registrados
+                <TableCell colSpan={columns.length} className="p-0">
+                  <EmptyState icon={Users} title="No hay usuarios" />
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-      </div>
+      </TableContainer>
 
       <div className="flex items-center justify-between mt-4">
         <p className="text-sm text-slate-500">{users.length} usuarios</p>
@@ -361,14 +416,24 @@ export function UsuariosTable(): JSX.Element {
 
       <ConfirmDialog
         open={!!deleteId}
-        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+        onOpenChange={(open) => {
+          if (!open) setDeleteId(null);
+        }}
         onConfirm={handleDelete}
         title="Desactivar usuario"
         description="Este usuario sera desactivado y no podra iniciar sesion. Puedes reactivarlo despues."
         confirmLabel="Desactivar"
       />
 
-      <AlertDialog open={!!resetUser} onOpenChange={(open) => { if (!open) { setResetUser(null); setNewPassword(''); } }}>
+      <AlertDialog
+        open={!!resetUser}
+        onOpenChange={(open) => {
+          if (!open) {
+            setResetUser(null);
+            setNewPassword('');
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Restablecer contrasena</AlertDialogTitle>

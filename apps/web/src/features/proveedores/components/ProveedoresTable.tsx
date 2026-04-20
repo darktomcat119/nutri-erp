@@ -6,8 +6,10 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   flexRender,
   type ColumnDef,
+  type SortingState,
 } from '@tanstack/react-table';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,15 +19,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableContainer,
 } from '@/components/ui/table';
+import { SortableHeader } from '@/components/ui/sortable-header';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Plus, Search, PowerOff, Power } from 'lucide-react';
+import { Pencil, Plus, Search, PowerOff, Power, Store } from 'lucide-react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { TableSkeletonRows } from '@/components/ui/table-skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface Proveedor {
   id: string;
@@ -54,25 +69,37 @@ type FormData = z.infer<typeof editSchema>;
 
 export function ProveedoresTable(): JSX.Element {
   const [data, setData] = useState<Proveedor[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Proveedor | null>(null);
   const [filter, setFilter] = useState('');
+  const [sorting, setSorting] = useState<SortingState>([]);
   const [deactivateId, setDeactivateId] = useState<string | null>(null);
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FormData>({
     resolver: zodResolver(editSchema),
   });
 
   const load = useCallback(async (): Promise<void> => {
+    setLoading(true);
     try {
       const res = await api.get('/proveedores');
       setData(res.data.data);
     } catch {
       toast.error('Error al cargar proveedores');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const openCreate = (): void => {
     setEditing(null);
@@ -143,19 +170,36 @@ export function ProveedoresTable(): JSX.Element {
   const columns: ColumnDef<Proveedor>[] = [
     {
       accessorKey: 'ordenRuta',
-      header: '#Ruta',
-      cell: ({ row }) => (
-        <span className="font-mono text-sm">{row.original.ordenRuta}</span>
-      ),
+      header: ({ column }) => <SortableHeader column={column}>#Ruta</SortableHeader>,
+      cell: ({ row }) => <span className="font-mono text-sm">{row.original.ordenRuta}</span>,
     },
-    { accessorKey: 'nombre', header: 'Nombre' },
-    { accessorKey: 'categoria', header: 'Categoria', cell: ({ row }) => row.original.categoria || '—' },
-    { accessorKey: 'centroCompras', header: 'Centro de Compras', cell: ({ row }) => row.original.centroCompras || '—' },
-    { accessorKey: 'contacto', header: 'Contacto', cell: ({ row }) => row.original.contacto || '—' },
-    { accessorKey: 'telefono', header: 'Telefono', cell: ({ row }) => row.original.telefono || '—' },
+    {
+      accessorKey: 'nombre',
+      header: ({ column }) => <SortableHeader column={column}>Nombre</SortableHeader>,
+    },
+    {
+      accessorKey: 'categoria',
+      header: ({ column }) => <SortableHeader column={column}>Categoria</SortableHeader>,
+      cell: ({ row }) => row.original.categoria || '—',
+    },
+    {
+      accessorKey: 'centroCompras',
+      header: 'Centro de Compras',
+      cell: ({ row }) => row.original.centroCompras || '—',
+    },
+    {
+      accessorKey: 'contacto',
+      header: 'Contacto',
+      cell: ({ row }) => row.original.contacto || '—',
+    },
+    {
+      accessorKey: 'telefono',
+      header: 'Telefono',
+      cell: ({ row }) => row.original.telefono || '—',
+    },
     {
       accessorKey: 'activo',
-      header: 'Estado',
+      header: ({ column }) => <SortableHeader column={column}>Estado</SortableHeader>,
       cell: ({ row }) => (
         <Badge
           variant={row.original.activo ? 'default' : 'destructive'}
@@ -213,8 +257,14 @@ export function ProveedoresTable(): JSX.Element {
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    state: { globalFilter: filter },
+    getSortedRowModel: getSortedRowModel(),
+    state: { globalFilter: filter, sorting },
     onGlobalFilterChange: setFilter,
+    onSortingChange: setSorting,
+    initialState: {
+      pagination: { pageSize: 20 },
+      sorting: [{ id: 'ordenRuta', desc: false }],
+    },
   });
 
   return (
@@ -268,11 +318,10 @@ export function ProveedoresTable(): JSX.Element {
               {editing && (
                 <div className="space-y-2">
                   <Label>Orden Ruta</Label>
-                  <Input
-                    type="number"
-                    {...register('ordenRuta', { valueAsNumber: true })}
-                  />
-                  {errors.ordenRuta && <p className="text-xs text-red-600">{errors.ordenRuta.message}</p>}
+                  <Input type="number" {...register('ordenRuta', { valueAsNumber: true })} />
+                  {errors.ordenRuta && (
+                    <p className="text-xs text-red-600">{errors.ordenRuta.message}</p>
+                  )}
                 </div>
               )}
               <Button type="submit" className="w-full min-h-[44px]">
@@ -283,7 +332,7 @@ export function ProveedoresTable(): JSX.Element {
         </Dialog>
       </div>
 
-      <div className="rounded-md border overflow-x-auto">
+      <TableContainer maxHeight="calc(100vh - 320px)">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (
@@ -297,7 +346,9 @@ export function ProveedoresTable(): JSX.Element {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.length ? (
+            {loading ? (
+              <TableSkeletonRows rows={8} cols={columns.length} />
+            ) : table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -312,22 +363,34 @@ export function ProveedoresTable(): JSX.Element {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-slate-500">
-                  No hay proveedores
+                <TableCell colSpan={columns.length} className="p-0">
+                  <EmptyState icon={Store} title="No hay proveedores" />
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-      </div>
+      </TableContainer>
 
       <div className="flex items-center justify-between mt-4">
         <p className="text-sm text-slate-500">{data.length} proveedores</p>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="min-h-[44px]" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-[44px]"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
             Anterior
           </Button>
-          <Button variant="outline" size="sm" className="min-h-[44px]" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-[44px]"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
             Siguiente
           </Button>
         </div>
@@ -335,7 +398,9 @@ export function ProveedoresTable(): JSX.Element {
 
       <ConfirmDialog
         open={!!deactivateId}
-        onOpenChange={(open) => { if (!open) setDeactivateId(null); }}
+        onOpenChange={(open) => {
+          if (!open) setDeactivateId(null);
+        }}
         onConfirm={handleDeactivateConfirm}
         title="Desactivar proveedor"
         description="Este proveedor sera desactivado y no aparecera en futuras ordenes de compra. Puedes reactivarlo despues."
