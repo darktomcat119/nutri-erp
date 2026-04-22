@@ -15,11 +15,18 @@ import {
 import { FileSpreadsheet, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { OrdenEntrega, GenerarResult } from './types';
+import { useTableSort } from '@/lib/useTableSort';
+import { SortableTh } from '@/components/ui/sortable-th';
 
 export function GenerarCargaTab(): JSX.Element {
   const [ordenes, setOrdenes] = useState<OrdenEntrega[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+
+  const { sorted, sortKey, sortDir, toggleSort } = useTableSort(ordenes, {
+    defaultKey: 'sucursal.codigo',
+    defaultDir: 'asc',
+  });
 
   const loadOrdenes = useCallback(async () => {
     setLoading(true);
@@ -77,14 +84,42 @@ export function GenerarCargaTab(): JSX.Element {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Sucursal</TableHead>
-                  <TableHead>Semana</TableHead>
-                  <TableHead className="text-right">Items</TableHead>
+                  <TableHead>
+                    <SortableTh
+                      sortKey="sucursal.codigo"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onToggle={toggleSort}
+                    >
+                      Sucursal
+                    </SortableTh>
+                  </TableHead>
+                  <TableHead>
+                    <SortableTh
+                      sortKey="semana"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onToggle={toggleSort}
+                    >
+                      Semana
+                    </SortableTh>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <SortableTh
+                      sortKey="_count.items"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onToggle={toggleSort}
+                      align="right"
+                    >
+                      Items
+                    </SortableTh>
+                  </TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ordenes.map((orden) => (
+                {sorted.map((orden) => (
                   <TableRow key={orden.id}>
                     <TableCell className="font-medium">
                       {orden.sucursal.codigo} - {orden.sucursal.nombre}

@@ -38,6 +38,8 @@ import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import type { Sucursal, RequisicionMos, RequisicionMosDetail, GenerarResult } from './types';
 import { estadoBadge, getCurrentWeek, fmtMoney } from './types';
+import { useTableSort } from '@/lib/useTableSort';
+import { SortableTh } from '@/components/ui/sortable-th';
 
 export function AdminView({ canApprove }: { canApprove: boolean }): JSX.Element {
   // Generate section
@@ -63,6 +65,11 @@ export function AdminView({ canApprove }: { canApprove: boolean }): JSX.Element 
 
   // Regenerate confirm (when a requisicion already exists for same semana/sucursal)
   const [regenPending, setRegenPending] = useState<null | { mode: 'excel' | 'live' }>(null);
+
+  const { sorted, sortKey, sortDir, toggleSort } = useTableSort(requisiciones, {
+    defaultKey: 'createdAt',
+    defaultDir: 'desc',
+  });
 
   const loadSucursales = useCallback(async (): Promise<void> => {
     try {
@@ -224,7 +231,7 @@ export function AdminView({ canApprove }: { canApprove: boolean }): JSX.Element 
   const doApprove = async (): Promise<void> => {
     if (!approveId) return;
     try {
-      await api.post(`/requisicion-mos/${approveId}/aprobar`);
+      await api.patch(`/requisicion-mos/${approveId}/aprobar`);
       toast.success('Requisicion aprobada');
       setDetailOpen(false);
       loadList();
@@ -380,12 +387,66 @@ export function AdminView({ canApprove }: { canApprove: boolean }): JSX.Element 
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Semana</TableHead>
-                  <TableHead>Sucursal</TableHead>
-                  <TableHead>Total Displays</TableHead>
-                  <TableHead>Total Dinero</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Fecha</TableHead>
+                  <TableHead>
+                    <SortableTh
+                      sortKey="semana"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onToggle={toggleSort}
+                    >
+                      Semana
+                    </SortableTh>
+                  </TableHead>
+                  <TableHead>
+                    <SortableTh
+                      sortKey="sucursal.codigo"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onToggle={toggleSort}
+                    >
+                      Sucursal
+                    </SortableTh>
+                  </TableHead>
+                  <TableHead>
+                    <SortableTh
+                      sortKey="totalDisplays"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onToggle={toggleSort}
+                    >
+                      Total Displays
+                    </SortableTh>
+                  </TableHead>
+                  <TableHead>
+                    <SortableTh
+                      sortKey="totalDinero"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onToggle={toggleSort}
+                    >
+                      Total Dinero
+                    </SortableTh>
+                  </TableHead>
+                  <TableHead>
+                    <SortableTh
+                      sortKey="estado"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onToggle={toggleSort}
+                    >
+                      Estado
+                    </SortableTh>
+                  </TableHead>
+                  <TableHead>
+                    <SortableTh
+                      sortKey="createdAt"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onToggle={toggleSort}
+                    >
+                      Fecha
+                    </SortableTh>
+                  </TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -400,8 +461,8 @@ export function AdminView({ canApprove }: { canApprove: boolean }): JSX.Element 
                       ))}
                     </TableRow>
                   ))
-                ) : requisiciones.length ? (
-                  requisiciones.map((p) => (
+                ) : sorted.length ? (
+                  sorted.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="whitespace-nowrap">{p.semana}</TableCell>
                       <TableCell className="whitespace-nowrap">{p.sucursal.codigo}</TableCell>

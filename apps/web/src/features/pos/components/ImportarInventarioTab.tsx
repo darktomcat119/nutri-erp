@@ -26,6 +26,8 @@ import { SelectEmpty } from '@/components/ui/select-empty';
 import { Upload, Package, Loader2, AlertTriangle, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Sucursal, ImportResult, InventarioRow } from './types';
+import { useTableSort } from '@/lib/useTableSort';
+import { SortableTh } from '@/components/ui/sortable-th';
 
 export function ImportarInventarioTab(): JSX.Element {
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
@@ -36,6 +38,11 @@ export function ImportarInventarioTab(): JSX.Element {
   const [inventario, setInventario] = useState<InventarioRow[]>([]);
   const [loadingInv, setLoadingInv] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { sorted, sortKey, sortDir, toggleSort } = useTableSort(inventario, {
+    defaultKey: 'producto.nombre',
+    defaultDir: 'asc',
+  });
 
   // Load sucursales
   useEffect(() => {
@@ -231,15 +238,64 @@ export function ImportarInventarioTab(): JSX.Element {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Producto</TableHead>
-                      <TableHead className="text-right">Inventario Total</TableHead>
-                      <TableHead className="text-right">Reservado</TableHead>
-                      <TableHead className="text-right">Disponible</TableHead>
-                      <TableHead className="text-right">Limite Diario</TableHead>
+                      <TableHead>
+                        <SortableTh
+                          sortKey="producto.nombre"
+                          activeKey={sortKey}
+                          dir={sortDir}
+                          onToggle={toggleSort}
+                        >
+                          Producto
+                        </SortableTh>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <SortableTh
+                          sortKey="inventarioTotal"
+                          activeKey={sortKey}
+                          dir={sortDir}
+                          onToggle={toggleSort}
+                          align="right"
+                        >
+                          Inventario Total
+                        </SortableTh>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <SortableTh
+                          sortKey="reservado"
+                          activeKey={sortKey}
+                          dir={sortDir}
+                          onToggle={toggleSort}
+                          align="right"
+                        >
+                          Reservado
+                        </SortableTh>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <SortableTh
+                          sortKey="disponible"
+                          activeKey={sortKey}
+                          dir={sortDir}
+                          onToggle={toggleSort}
+                          align="right"
+                        >
+                          Disponible
+                        </SortableTh>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <SortableTh
+                          sortKey="limiteDiario"
+                          activeKey={sortKey}
+                          dir={sortDir}
+                          onToggle={toggleSort}
+                          align="right"
+                        >
+                          Limite Diario
+                        </SortableTh>
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {inventario.map((row) => (
+                    {sorted.map((row) => (
                       <TableRow key={row.id}>
                         <TableCell className="font-medium">{row.producto.nombre}</TableCell>
                         <TableCell className="text-right">{row.inventarioTotal}</TableCell>

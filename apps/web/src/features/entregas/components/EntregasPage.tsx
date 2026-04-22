@@ -26,6 +26,8 @@ import { Eye, Plus, Loader2, Truck, FileDown, ShoppingCart } from 'lucide-react'
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { useTableSort } from '@/lib/useTableSort';
+import { SortableTh } from '@/components/ui/sortable-th';
 
 interface Sucursal {
   id: string;
@@ -77,6 +79,11 @@ export function EntregasPage(): JSX.Element {
   const [detail, setDetail] = useState<OrdenEntregaDetail | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [confirmGenerarOpen, setConfirmGenerarOpen] = useState(false);
+
+  const { sorted, sortKey, sortDir, toggleSort } = useTableSort(entregas, {
+    defaultKey: 'createdAt',
+    defaultDir: 'desc',
+  });
 
   const loadEntregas = useCallback(async (): Promise<void> => {
     try {
@@ -256,16 +263,47 @@ export function EntregasPage(): JSX.Element {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Sucursal</TableHead>
-              <TableHead>Semana</TableHead>
-              <TableHead>Items</TableHead>
-              <TableHead>Fecha</TableHead>
+              <TableHead>
+                <SortableTh
+                  sortKey="sucursal.codigo"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Sucursal
+                </SortableTh>
+              </TableHead>
+              <TableHead>
+                <SortableTh
+                  sortKey="ordenCompra.semana"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Semana
+                </SortableTh>
+              </TableHead>
+              <TableHead>
+                <SortableTh
+                  sortKey="_count.items"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Items
+                </SortableTh>
+              </TableHead>
+              <TableHead>
+                <SortableTh sortKey="fecha" activeKey={sortKey} dir={sortDir} onToggle={toggleSort}>
+                  Fecha
+                </SortableTh>
+              </TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {entregas.length ? (
-              entregas.map((e) => (
+            {sorted.length ? (
+              sorted.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell>
                     <span className="font-medium">{e.sucursal.codigo}</span>

@@ -11,8 +11,9 @@ export class RequisicionesService {
   async findAll(query?: { semana?: string; sucursalId?: string; estado?: string }): Promise<unknown[]> {
     const where: Record<string, unknown> = {};
     if (query?.semana) where.semana = query.semana;
-    if (query?.sucursalId) where.sucursalId = query.sucursalId;
-    if (query?.estado) where.estado = query.estado;
+    if (query?.sucursalId && query.sucursalId !== 'all') where.sucursalId = query.sucursalId;
+    // Treat 'all' / empty string as "no estado filter"
+    if (query?.estado && query.estado !== 'all') where.estado = query.estado;
 
     return this.prisma.requisicion.findMany({
       where,

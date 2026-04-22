@@ -31,6 +31,8 @@ import { getCurrentWeek } from './types';
 import { BudgetOverview } from './BudgetOverview';
 import { SupplierSpendChart } from './SupplierSpendChart';
 import { CloseWeekSection } from './CloseWeekSection';
+import { useTableSort } from '@/lib/useTableSort';
+import { SortableTh } from '@/components/ui/sortable-th';
 
 export function FinancieroPage(): JSX.Element {
   const user = useAuthStore((s) => s.user);
@@ -55,6 +57,13 @@ export function FinancieroPage(): JSX.Element {
   const [dialogMos, setDialogMos] = useState('');
   const [dialogIns, setDialogIns] = useState('');
   const [dialogSubmitting, setDialogSubmitting] = useState(false);
+
+  const {
+    sorted: sortedDiferencias,
+    sortKey: difSortKey,
+    sortDir: difSortDir,
+    toggleSort: toggleDifSort,
+  } = useTableSort(diferencias, { defaultKey: 'sucursal', defaultDir: 'asc' });
 
   // Load sucursales once
   useEffect(() => {
@@ -234,16 +243,73 @@ export function FinancieroPage(): JSX.Element {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Sucursal</TableHead>
-                        <TableHead>Producto / Insumo</TableHead>
-                        <TableHead>Area</TableHead>
-                        <TableHead className="text-right">Esperada</TableHead>
-                        <TableHead className="text-right">Recibida</TableHead>
-                        <TableHead className="text-right">Diferencia</TableHead>
+                        <TableHead>
+                          <SortableTh
+                            sortKey="sucursal"
+                            activeKey={difSortKey}
+                            dir={difSortDir}
+                            onToggle={toggleDifSort}
+                          >
+                            Sucursal
+                          </SortableTh>
+                        </TableHead>
+                        <TableHead>
+                          <SortableTh
+                            sortKey="producto"
+                            activeKey={difSortKey}
+                            dir={difSortDir}
+                            onToggle={toggleDifSort}
+                          >
+                            Producto / Insumo
+                          </SortableTh>
+                        </TableHead>
+                        <TableHead>
+                          <SortableTh
+                            sortKey="area"
+                            activeKey={difSortKey}
+                            dir={difSortDir}
+                            onToggle={toggleDifSort}
+                          >
+                            Area
+                          </SortableTh>
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <SortableTh
+                            sortKey="cantidadEsperada"
+                            activeKey={difSortKey}
+                            dir={difSortDir}
+                            onToggle={toggleDifSort}
+                            align="right"
+                          >
+                            Esperada
+                          </SortableTh>
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <SortableTh
+                            sortKey="cantidadRecibida"
+                            activeKey={difSortKey}
+                            dir={difSortDir}
+                            onToggle={toggleDifSort}
+                            align="right"
+                          >
+                            Recibida
+                          </SortableTh>
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <SortableTh
+                            sortKey="diferencia"
+                            activeKey={difSortKey}
+                            dir={difSortDir}
+                            onToggle={toggleDifSort}
+                            align="right"
+                          >
+                            Diferencia
+                          </SortableTh>
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {diferencias.map((d) => (
+                      {sortedDiferencias.map((d) => (
                         <TableRow key={d.id}>
                           <TableCell className="font-medium">{d.sucursal}</TableCell>
                           <TableCell>{d.producto}</TableCell>

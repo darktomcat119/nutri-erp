@@ -38,6 +38,8 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+import { useTableSort } from '@/lib/useTableSort';
+import { SortableTh } from '@/components/ui/sortable-th';
 
 /* ---------- Types ---------- */
 
@@ -90,6 +92,13 @@ export function ReportesPage(): JSX.Element {
   const [resumen, setResumen] = useState<ResumenSemanal | null>(null);
   const [gastos, setGastos] = useState<GastoProveedor[]>([]);
   const [diferencias, setDiferencias] = useState<Diferencia[]>([]);
+
+  const {
+    sorted: sortedDiferencias,
+    sortKey: difSortKey,
+    sortDir: difSortDir,
+    toggleSort: toggleDifSort,
+  } = useTableSort(diferencias, { defaultKey: 'sucursal', defaultDir: 'asc' });
 
   const load = async (): Promise<void> => {
     if (!semana) {
@@ -299,16 +308,73 @@ export function ReportesPage(): JSX.Element {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Sucursal</TableHead>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Area</TableHead>
-                    <TableHead className="text-right">Esperada</TableHead>
-                    <TableHead className="text-right">Recibida</TableHead>
-                    <TableHead className="text-right">Diferencia</TableHead>
+                    <TableHead>
+                      <SortableTh
+                        sortKey="sucursal"
+                        activeKey={difSortKey}
+                        dir={difSortDir}
+                        onToggle={toggleDifSort}
+                      >
+                        Sucursal
+                      </SortableTh>
+                    </TableHead>
+                    <TableHead>
+                      <SortableTh
+                        sortKey="item"
+                        activeKey={difSortKey}
+                        dir={difSortDir}
+                        onToggle={toggleDifSort}
+                      >
+                        Item
+                      </SortableTh>
+                    </TableHead>
+                    <TableHead>
+                      <SortableTh
+                        sortKey="area"
+                        activeKey={difSortKey}
+                        dir={difSortDir}
+                        onToggle={toggleDifSort}
+                      >
+                        Area
+                      </SortableTh>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <SortableTh
+                        sortKey="esperada"
+                        activeKey={difSortKey}
+                        dir={difSortDir}
+                        onToggle={toggleDifSort}
+                        align="right"
+                      >
+                        Esperada
+                      </SortableTh>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <SortableTh
+                        sortKey="recibida"
+                        activeKey={difSortKey}
+                        dir={difSortDir}
+                        onToggle={toggleDifSort}
+                        align="right"
+                      >
+                        Recibida
+                      </SortableTh>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <SortableTh
+                        sortKey="diferencia"
+                        activeKey={difSortKey}
+                        dir={difSortDir}
+                        onToggle={toggleDifSort}
+                        align="right"
+                      >
+                        Diferencia
+                      </SortableTh>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {diferencias.map((d, idx) => (
+                  {sortedDiferencias.map((d, idx) => (
                     <TableRow key={`${d.sucursal}-${d.item}-${idx}`}>
                       <TableCell className="min-h-[44px]">{d.sucursal}</TableCell>
                       <TableCell>{d.item}</TableCell>

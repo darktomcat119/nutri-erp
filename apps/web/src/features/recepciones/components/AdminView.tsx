@@ -19,6 +19,8 @@ import { toast } from 'sonner';
 import { TableSkeletonRows } from '@/components/ui/table-skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import type { RecepcionListItem, RecepcionDetail, PushPreview } from './types';
+import { useTableSort } from '@/lib/useTableSort';
+import { SortableTh } from '@/components/ui/sortable-th';
 
 export function AdminView(): JSX.Element {
   const [recepciones, setRecepciones] = useState<RecepcionListItem[]>([]);
@@ -27,6 +29,11 @@ export function AdminView(): JSX.Element {
   const [detailOpen, setDetailOpen] = useState(false);
   const [pushPreview, setPushPreview] = useState<PushPreview | null>(null);
   const [pushing, setPushing] = useState(false);
+
+  const { sorted, sortKey, sortDir, toggleSort } = useTableSort(recepciones, {
+    defaultKey: 'createdAt',
+    defaultDir: 'desc',
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -98,20 +105,69 @@ export function AdminView(): JSX.Element {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Folio</TableHead>
-              <TableHead>Semana</TableHead>
-              <TableHead>Sucursal</TableHead>
-              <TableHead>Recibido por</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Fecha</TableHead>
+              <TableHead>
+                <SortableTh sortKey="folio" activeKey={sortKey} dir={sortDir} onToggle={toggleSort}>
+                  Folio
+                </SortableTh>
+              </TableHead>
+              <TableHead>
+                <SortableTh
+                  sortKey="semana"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Semana
+                </SortableTh>
+              </TableHead>
+              <TableHead>
+                <SortableTh
+                  sortKey="sucursal.codigo"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Sucursal
+                </SortableTh>
+              </TableHead>
+              <TableHead>
+                <SortableTh
+                  sortKey="recibidoPor.nombre"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Recibido por
+                </SortableTh>
+              </TableHead>
+              <TableHead>
+                <SortableTh
+                  sortKey="estado"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Estado
+                </SortableTh>
+              </TableHead>
+              <TableHead>
+                <SortableTh
+                  sortKey="createdAt"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Fecha
+                </SortableTh>
+              </TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableSkeletonRows rows={8} cols={7} />
-            ) : recepciones.length ? (
-              recepciones.map((rec) => (
+            ) : sorted.length ? (
+              sorted.map((rec) => (
                 <TableRow key={rec.id}>
                   <TableCell className="font-mono text-sm">{rec.folio}</TableCell>
                   <TableCell>{rec.semana}</TableCell>

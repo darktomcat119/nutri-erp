@@ -5,9 +5,12 @@ import {
   useReactTable,
   getCoreRowModel,
   getFilteredRowModel,
+  getSortedRowModel,
   flexRender,
   type ColumnDef,
+  type SortingState,
 } from '@tanstack/react-table';
+import { SortableHeader } from '@/components/ui/sortable-header';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,6 +92,7 @@ export function RequisicionesList(): JSX.Element {
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNotas, setRejectNotas] = useState('');
   const [approveId, setApproveId] = useState<string | null>(null);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -148,13 +152,26 @@ export function RequisicionesList(): JSX.Element {
   };
 
   const columns: ColumnDef<Requisicion>[] = [
-    { accessorKey: 'semana', header: 'Semana' },
-    { id: 'sucursal', header: 'Sucursal', cell: ({ row }) => row.original.sucursal.codigo },
+    {
+      accessorKey: 'semana',
+      header: ({ column }) => <SortableHeader column={column}>Semana</SortableHeader>,
+    },
+    {
+      id: 'sucursal.codigo',
+      accessorFn: (row) => row.sucursal.codigo,
+      header: ({ column }) => <SortableHeader column={column}>Sucursal</SortableHeader>,
+      cell: ({ row }) => row.original.sucursal.codigo,
+    },
     { id: 'items', header: 'Items', cell: ({ row }) => row.original._count.items },
-    { id: 'creadoPor', header: 'Creado por', cell: ({ row }) => row.original.creadoPor.nombre },
+    {
+      id: 'creadoPor.nombre',
+      accessorFn: (row) => row.creadoPor.nombre,
+      header: ({ column }) => <SortableHeader column={column}>Creado por</SortableHeader>,
+      cell: ({ row }) => row.original.creadoPor.nombre,
+    },
     {
       accessorKey: 'estado',
-      header: 'Estado',
+      header: ({ column }) => <SortableHeader column={column}>Estado</SortableHeader>,
       cell: ({ row }) => (
         <span
           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${estadoBadge[row.original.estado] || ''}`}
@@ -165,7 +182,7 @@ export function RequisicionesList(): JSX.Element {
     },
     {
       accessorKey: 'createdAt',
-      header: 'Fecha',
+      header: ({ column }) => <SortableHeader column={column}>Fecha</SortableHeader>,
       cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString('es-MX'),
     },
     {
@@ -194,8 +211,12 @@ export function RequisicionesList(): JSX.Element {
   const table = useReactTable({
     data,
     columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    initialState: { sorting: [{ id: 'createdAt', desc: true }] },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
   });
 
   return (

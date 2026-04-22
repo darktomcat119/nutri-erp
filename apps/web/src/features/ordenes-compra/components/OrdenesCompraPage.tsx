@@ -20,6 +20,8 @@ import { toast } from 'sonner';
 import { TableSkeletonRows } from '@/components/ui/table-skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { useTableSort } from '@/lib/useTableSort';
+import { SortableTh } from '@/components/ui/sortable-th';
 
 interface OC {
   id: string;
@@ -83,6 +85,18 @@ export function OrdenesCompraPage(): JSX.Element {
   >([]);
   const [approveId, setApproveId] = useState<string | null>(null);
   const [ejecutarId, setEjecutarId] = useState<string | null>(null);
+
+  const { sorted, sortKey, sortDir, toggleSort } = useTableSort(ocs, {
+    defaultKey: 'createdAt',
+    defaultDir: 'desc',
+    getValue: (row, key) => {
+      if (key === 'totalEstimado' || key === 'totalReal') {
+        const v = row[key as 'totalEstimado' | 'totalReal'];
+        return v == null ? null : Number(v);
+      }
+      return (row as unknown as Record<string, unknown>)[key];
+    },
+  });
 
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -205,21 +219,70 @@ export function OrdenesCompraPage(): JSX.Element {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Folio</TableHead>
-              <TableHead>Semana</TableHead>
+              <TableHead>
+                <SortableTh sortKey="folio" activeKey={sortKey} dir={sortDir} onToggle={toggleSort}>
+                  Folio
+                </SortableTh>
+              </TableHead>
+              <TableHead>
+                <SortableTh
+                  sortKey="semana"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Semana
+                </SortableTh>
+              </TableHead>
               <TableHead>Items</TableHead>
-              <TableHead>Total Estimado</TableHead>
-              <TableHead>Total Real</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Fecha</TableHead>
+              <TableHead>
+                <SortableTh
+                  sortKey="totalEstimado"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Total Estimado
+                </SortableTh>
+              </TableHead>
+              <TableHead>
+                <SortableTh
+                  sortKey="totalReal"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Total Real
+                </SortableTh>
+              </TableHead>
+              <TableHead>
+                <SortableTh
+                  sortKey="estado"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Estado
+                </SortableTh>
+              </TableHead>
+              <TableHead>
+                <SortableTh
+                  sortKey="createdAt"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Fecha
+                </SortableTh>
+              </TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableSkeletonRows rows={8} cols={8} />
-            ) : ocs.length ? (
-              ocs.map((oc) => (
+            ) : sorted.length ? (
+              sorted.map((oc) => (
                 <TableRow key={oc.id}>
                   <TableCell className="font-mono text-sm">{oc.folio}</TableCell>
                   <TableCell>{oc.semana}</TableCell>

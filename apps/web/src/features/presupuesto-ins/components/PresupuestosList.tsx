@@ -21,6 +21,8 @@ import { Eye, Check, X, Loader2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Presupuesto } from './types';
 import { formatMoney, formatDate, estadoVariant } from './types';
+import { useTableSort } from '@/lib/useTableSort';
+import { SortableTh } from '@/components/ui/sortable-th';
 
 interface PresupuestosListProps {
   presupuestos: Presupuesto[];
@@ -51,6 +53,11 @@ export function PresupuestosList({
   const [rejectTarget, setRejectTarget] = useState<Presupuesto | null>(null);
   const [rejectNotas, setRejectNotas] = useState<string>('');
   const [rejecting, setRejecting] = useState<boolean>(false);
+
+  const { sorted, sortKey, sortDir, toggleSort } = useTableSort(presupuestos, {
+    defaultKey: 'createdAt',
+    defaultDir: 'desc',
+  });
 
   const openDetail = async (p: Presupuesto): Promise<void> => {
     setDetailOpen(true);
@@ -88,7 +95,7 @@ export function PresupuestosList({
         }
         body.montoAprobado = n;
       }
-      await api.post(`/presupuesto-ins/${approveTarget.id}/aprobar`, body);
+      await api.patch(`/presupuesto-ins/${approveTarget.id}/aprobar`, body);
       toast.success('Presupuesto aprobado');
       setApproveOpen(false);
       setApproveTarget(null);
@@ -117,7 +124,9 @@ export function PresupuestosList({
     }
     setRejecting(true);
     try {
-      await api.post(`/presupuesto-ins/${rejectTarget.id}/rechazar`, { notas: rejectNotas.trim() });
+      await api.patch(`/presupuesto-ins/${rejectTarget.id}/rechazar`, {
+        notas: rejectNotas.trim(),
+      });
       toast.success('Presupuesto rechazado');
       setRejectOpen(false);
       setRejectTarget(null);
@@ -162,17 +171,62 @@ export function PresupuestosList({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Semana</TableHead>
-                    <TableHead>Sucursal</TableHead>
-                    <TableHead>Monto Calculado</TableHead>
-                    <TableHead>Estado</TableHead>
+                    <TableHead>
+                      <SortableTh
+                        sortKey="semana"
+                        activeKey={sortKey}
+                        dir={sortDir}
+                        onToggle={toggleSort}
+                      >
+                        Semana
+                      </SortableTh>
+                    </TableHead>
+                    <TableHead>
+                      <SortableTh
+                        sortKey="sucursal.codigo"
+                        activeKey={sortKey}
+                        dir={sortDir}
+                        onToggle={toggleSort}
+                      >
+                        Sucursal
+                      </SortableTh>
+                    </TableHead>
+                    <TableHead>
+                      <SortableTh
+                        sortKey="montoCalculado"
+                        activeKey={sortKey}
+                        dir={sortDir}
+                        onToggle={toggleSort}
+                      >
+                        Monto Calculado
+                      </SortableTh>
+                    </TableHead>
+                    <TableHead>
+                      <SortableTh
+                        sortKey="estado"
+                        activeKey={sortKey}
+                        dir={sortDir}
+                        onToggle={toggleSort}
+                      >
+                        Estado
+                      </SortableTh>
+                    </TableHead>
                     <TableHead>Generado por</TableHead>
-                    <TableHead>Fecha</TableHead>
+                    <TableHead>
+                      <SortableTh
+                        sortKey="createdAt"
+                        activeKey={sortKey}
+                        dir={sortDir}
+                        onToggle={toggleSort}
+                      >
+                        Fecha
+                      </SortableTh>
+                    </TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {presupuestos.map((p) => (
+                  {sorted.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.semana}</TableCell>
                       <TableCell>

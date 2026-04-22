@@ -15,10 +15,17 @@ import {
 import { Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PosUpload } from './types';
+import { useTableSort } from '@/lib/useTableSort';
+import { SortableTh } from '@/components/ui/sortable-th';
 
 export function HistorialTab(): JSX.Element {
   const [uploads, setUploads] = useState<PosUpload[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const { sorted, sortKey, sortDir, toggleSort } = useTableSort(uploads, {
+    defaultKey: 'createdAt',
+    defaultDir: 'desc',
+  });
 
   useEffect(() => {
     api
@@ -57,16 +64,63 @@ export function HistorialTab(): JSX.Element {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Sucursal</TableHead>
-                  <TableHead>Semana</TableHead>
-                  <TableHead className="text-right">Items</TableHead>
-                  <TableHead className="text-right">Total Piezas</TableHead>
-                  <TableHead>Fecha</TableHead>
+                  <TableHead>
+                    <SortableTh
+                      sortKey="sucursal.codigo"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onToggle={toggleSort}
+                    >
+                      Sucursal
+                    </SortableTh>
+                  </TableHead>
+                  <TableHead>
+                    <SortableTh
+                      sortKey="semana"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onToggle={toggleSort}
+                    >
+                      Semana
+                    </SortableTh>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <SortableTh
+                      sortKey="totalItems"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onToggle={toggleSort}
+                      align="right"
+                    >
+                      Items
+                    </SortableTh>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <SortableTh
+                      sortKey="totalPiezas"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onToggle={toggleSort}
+                      align="right"
+                    >
+                      Total Piezas
+                    </SortableTh>
+                  </TableHead>
+                  <TableHead>
+                    <SortableTh
+                      sortKey="createdAt"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onToggle={toggleSort}
+                    >
+                      Fecha
+                    </SortableTh>
+                  </TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {uploads.map((upload) => (
+                {sorted.map((upload) => (
                   <TableRow key={upload.id}>
                     <TableCell className="font-medium">
                       {upload.sucursal.codigo} - {upload.sucursal.nombre}
