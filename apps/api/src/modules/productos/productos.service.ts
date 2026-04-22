@@ -75,6 +75,60 @@ export class ProductosService {
     });
   }
 
+  async listConfigSucursales(productoId: string): Promise<unknown> {
+    await this.findOne(productoId);
+    const sucursales = await this.prisma.sucursal.findMany({
+      where: { activa: true },
+      orderBy: { codigo: 'asc' },
+    });
+    const configs = await this.prisma.configSucursalProducto.findMany({
+      where: { productoId },
+    });
+    const configBySucursal = new Map(configs.map((c) => [c.sucursalId, c]));
+    const rows = sucursales.map((s) => ({
+      sucursalId: s.id,
+      sucursalCodigo: s.codigo,
+      sucursalNombre: s.nombre,
+      maxSemanal: configBySucursal.get(s.id)?.maxSemanal ?? null,
+      precioVenta: configBySucursal.get(s.id)?.precioVenta ?? null,
+      margen: configBySucursal.get(s.id)?.margen ?? null,
+      quienSurte: configBySucursal.get(s.id)?.quienSurte ?? null,
+      activo: configBySucursal.get(s.id)?.activo ?? true,
+    }));
+    return { data: rows, message: 'Config por sucursal' };
+  }
+
+  async upsertConfigSucursal(
+    productoId: string,
+    sucursalId: string,
+    body: {
+      maxSemanal?: number | null;
+      precioVenta?: number | null;
+      margen?: number | null;
+      quienSurte?: string | null;
+      activo?: boolean;
+    },
+  ): Promise<unknown> {
+    await this.findOne(productoId);
+    const sucursal = await this.prisma.sucursal.findUnique({ where: { id: sucursalId } });
+    if (!sucursal) throw new NotFoundException('Sucursal no encontrada');
+
+    const data = {
+      maxSemanal: body.maxSemanal ?? null,
+      precioVenta: body.precioVenta != null ? body.precioVenta : null,
+      margen: body.margen != null ? body.margen : null,
+      quienSurte: body.quienSurte ?? null,
+      activo: body.activo ?? true,
+    };
+
+    const config = await this.prisma.configSucursalProducto.upsert({
+      where: { sucursalId_productoId: { sucursalId, productoId } },
+      update: data,
+      create: { sucursalId, productoId, ...data },
+    });
+    return { data: config, message: 'Config actualizada' };
+  }
+
   async exportExcel(): Promise<Buffer> {
     const productos = await this.prisma.producto.findMany({
       include: { proveedor: true },

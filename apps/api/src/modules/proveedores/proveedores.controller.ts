@@ -69,4 +69,20 @@ export class ProveedoresController {
   async remove(@Param('id') id: string) {
     return this.proveedoresService.remove(id);
   }
+
+  @Get(':id/check-hard-delete')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Verificar si el proveedor puede eliminarse permanentemente' })
+  async checkHardDelete(@Param('id') id: string) {
+    return this.proveedoresService.checkHardDelete(id);
+  }
+
+  @Delete(':id/hard')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Eliminar permanentemente (solo sin historial asociado)' })
+  async hardDelete(@Param('id') id: string) {
+    return this.proveedoresService.hardDelete(id);
+  }
 }

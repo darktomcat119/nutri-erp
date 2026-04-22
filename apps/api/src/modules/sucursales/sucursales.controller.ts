@@ -62,6 +62,24 @@ export class SucursalesController {
     return this.sucursalesService.remove(id);
   }
 
+  @Get(':id/check-hard-delete')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Verificar si la sucursal puede eliminarse permanentemente' })
+  async checkHardDelete(@Param('id') id: string) {
+    return this.sucursalesService.checkHardDelete(id);
+  }
+
+  @Delete(':id/hard')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({
+    summary: 'Eliminar permanentemente (solo si no tiene historial asociado)',
+  })
+  async hardDelete(@Param('id') id: string) {
+    return this.sucursalesService.hardDelete(id);
+  }
+
   @Get(':id/ordereat-token-status')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)

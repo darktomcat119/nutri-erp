@@ -22,8 +22,8 @@ export interface RequisicionMosItem {
   compraNecesaria: number;
   displaysAComprar: number;
   dinero: string;
-  sugerenciaCantidad?: number | null;
-  sugerenciaComentario?: string | null;
+  sugerenciaEncargado?: string | null;
+  cantidadFinal?: number | null;
 }
 
 export interface RequisicionMosDetail {

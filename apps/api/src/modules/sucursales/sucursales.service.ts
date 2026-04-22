@@ -67,6 +67,62 @@ export class SucursalesService {
     });
   }
 
+  /**
+   * Check what records would block a hard-delete for this sucursal.
+   * Returns per-relation counts; UI shows a summary before the user confirms.
+   */
+  async checkHardDelete(id: string) {
+    await this.findOne(id);
+    const [
+      usuarios,
+      presupuestos,
+      requisicionesIns,
+      requisicionesMos,
+      ordenesEntrega,
+      recepciones,
+      inventarioPos,
+      config,
+    ] = await Promise.all([
+      this.prisma.usuario.count({ where: { sucursalId: id } }),
+      this.prisma.presupuestoIns.count({ where: { sucursalId: id } }),
+      this.prisma.requisicion.count({ where: { sucursalId: id } }),
+      this.prisma.requisicionMos.count({ where: { sucursalId: id } }),
+      this.prisma.ordenEntrega.count({ where: { sucursalId: id } }),
+      this.prisma.recepcion.count({ where: { sucursalId: id } }),
+      this.prisma.inventarioPos.count({ where: { sucursalId: id } }),
+      this.prisma.configSucursalProducto.count({ where: { sucursalId: id } }),
+    ]);
+    const blockers = {
+      usuarios,
+      presupuestosIns: presupuestos,
+      requisicionesIns,
+      requisicionesMos,
+      ordenesEntrega,
+      recepciones,
+      inventarioPos,
+    };
+    const total = Object.values(blockers).reduce((a, b) => a + b, 0);
+    return { canDelete: total === 0, blockers, configLinks: config };
+  }
+
+  /**
+   * Permanently delete a sucursal — only if it has no history (enforced by checkHardDelete).
+   * ConfigSucursalProducto rows are cleaned up as part of the delete since they carry no history.
+   */
+  async hardDelete(id: string) {
+    const check = await this.checkHardDelete(id);
+    if (!check.canDelete) {
+      throw new BadRequestException(
+        'No se puede eliminar: la sucursal tiene movimientos/historial asociados. Use desactivar.',
+      );
+    }
+    await this.prisma.$transaction([
+      this.prisma.configSucursalProducto.deleteMany({ where: { sucursalId: id } }),
+      this.prisma.sucursal.delete({ where: { id } }),
+    ]);
+    return { success: true };
+  }
+
   async setOrdereatToken(id: string, token: string, updatedBy: string) {
     const suc = await this.prisma.sucursal.findUnique({ where: { id }, select: { id: true } });
     if (!suc) throw new NotFoundException('Sucursal no encontrada');

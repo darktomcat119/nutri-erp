@@ -571,14 +571,16 @@ export function AdminView({ canApprove }: { canApprove: boolean }): JSX.Element 
                         <TableCell>{item.displaysAComprar}</TableCell>
                         <TableCell>{fmtMoney(item.dinero)}</TableCell>
                         <TableCell>
-                          {item.sugerenciaCantidad != null ? (
+                          {item.cantidadFinal != null || item.sugerenciaEncargado ? (
                             <div className="text-xs">
-                              <Badge className="bg-amber-100 text-amber-700">
-                                {item.sugerenciaCantidad}
-                              </Badge>
-                              {item.sugerenciaComentario && (
+                              {item.cantidadFinal != null && (
+                                <Badge className="bg-amber-100 text-amber-700">
+                                  {item.cantidadFinal}
+                                </Badge>
+                              )}
+                              {item.sugerenciaEncargado && (
                                 <div className="text-slate-500 mt-1">
-                                  {item.sugerenciaComentario}
+                                  {item.sugerenciaEncargado}
                                 </div>
                               )}
                             </div>

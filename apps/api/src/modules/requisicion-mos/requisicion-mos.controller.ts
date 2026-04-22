@@ -95,7 +95,25 @@ export class RequisicionMosController {
     @Body('sugerencia') sugerencia: string,
     @Body('cantidadFinal') cantidadFinal: number,
   ) {
-    return this.requisicionMosService.suggestChange(itemId, sugerencia, cantidadFinal);
+    if (!sugerencia || typeof sugerencia !== 'string' || !sugerencia.trim()) {
+      throw new BadRequestException('Se requiere comentario de sugerencia');
+    }
+    if (cantidadFinal == null || Number.isNaN(Number(cantidadFinal)) || Number(cantidadFinal) < 0) {
+      throw new BadRequestException('Cantidad final invalida');
+    }
+    return this.requisicionMosService.suggestChange(
+      itemId,
+      sugerencia.trim(),
+      Math.floor(Number(cantidadFinal)),
+    );
+  }
+
+  @Patch(':id/revisar')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ENCARGADO)
+  @ApiOperation({ summary: 'Encargado marca la requisicion como revisada (sin cambios)' })
+  async markReviewed(@Param('id') id: string) {
+    return this.requisicionMosService.markReviewed(id);
   }
 
   @Patch(':id/aprobar')

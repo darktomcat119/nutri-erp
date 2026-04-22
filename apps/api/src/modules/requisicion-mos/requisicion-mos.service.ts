@@ -290,6 +290,27 @@ export class RequisicionMosService {
   }
 
   /**
+   * Encargado marks the requisition as reviewed without making per-item suggestions.
+   * Advances from GENERADA → REVISADA so the Admin can proceed to approve.
+   */
+  async markReviewed(id: string) {
+    const requisicion = await this.prisma.requisicionMos.findUnique({ where: { id } });
+    if (!requisicion) throw new NotFoundException('Requisicion MOS no encontrada');
+    if (requisicion.estado === 'APROBADA') {
+      throw new BadRequestException('La requisicion ya fue aprobada');
+    }
+    if (requisicion.estado === 'REVISADA') {
+      return { data: requisicion, message: 'La requisicion ya esta marcada como revisada' };
+    }
+    const updated = await this.prisma.requisicionMos.update({
+      where: { id },
+      data: { estado: 'REVISADA' },
+      include: { sucursal: true, items: { include: { producto: true } } },
+    });
+    return { data: updated, message: 'Requisicion marcada como revisada' };
+  }
+
+  /**
    * Approve a MOS requisition.
    */
   async approve(id: string) {

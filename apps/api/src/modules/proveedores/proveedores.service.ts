@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProveedorDto } from './dto/create-proveedor.dto';
 import { UpdateProveedorDto } from './dto/update-proveedor.dto';
@@ -77,6 +77,29 @@ export class ProveedoresService {
       where: { id },
       data: { activo: false },
     });
+  }
+
+  async checkHardDelete(id: string) {
+    await this.findOne(id);
+    const [productos, insumos, ordenCompraItems] = await Promise.all([
+      this.prisma.producto.count({ where: { proveedorId: id } }),
+      this.prisma.insumo.count({ where: { proveedorId: id } }),
+      this.prisma.ordenCompraItem.count({ where: { proveedorId: id } }),
+    ]);
+    const blockers = { productos, insumos, ordenCompraItems };
+    const total = productos + insumos + ordenCompraItems;
+    return { canDelete: total === 0, blockers };
+  }
+
+  async hardDelete(id: string): Promise<{ success: boolean }> {
+    const check = await this.checkHardDelete(id);
+    if (!check.canDelete) {
+      throw new BadRequestException(
+        'No se puede eliminar: el proveedor tiene productos, insumos o movimientos asociados. Use desactivar.',
+      );
+    }
+    await this.prisma.proveedor.delete({ where: { id } });
+    return { success: true };
   }
 
   async reorder(dto: ReorderProveedoresDto): Promise<{ message: string }> {

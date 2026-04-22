@@ -36,6 +36,16 @@ export class UpdateRequisicionDto {
   @IsString()
   notas?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  presupuestoInsId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  justificacionExceso?: string;
+
   @ApiPropertyOptional({ type: [RequisicionItemDto] })
   @IsOptional()
   @IsArray()

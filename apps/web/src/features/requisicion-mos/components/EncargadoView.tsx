@@ -17,7 +17,14 @@ import {
 } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, Loader2, Package, ShoppingCart, MessageSquarePlus } from 'lucide-react';
+import {
+  AlertTriangle,
+  Loader2,
+  Package,
+  ShoppingCart,
+  MessageSquarePlus,
+  CheckCircle2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import type { RequisicionMosItem, RequisicionMosDetail } from './types';
 import { estadoBadge, getCurrentWeek, fmtMoney } from './types';
@@ -34,6 +41,7 @@ export function EncargadoView({ sucursalId }: { sucursalId: string | null }): JS
   const [cantidadNueva, setCantidadNueva] = useState('');
   const [comentario, setComentario] = useState('');
   const [saving, setSaving] = useState(false);
+  const [markingReviewed, setMarkingReviewed] = useState(false);
 
   const load = useCallback(async (): Promise<void> => {
     if (!sucursalId) {
@@ -66,8 +74,8 @@ export function EncargadoView({ sucursalId }: { sucursalId: string | null }): JS
 
   const openSuggest = (item: RequisicionMosItem): void => {
     setActiveItem(item);
-    setCantidadNueva(String(item.sugerenciaCantidad ?? item.displaysAComprar));
-    setComentario(item.sugerenciaComentario || '');
+    setCantidadNueva(String(item.cantidadFinal ?? item.displaysAComprar));
+    setComentario(item.sugerenciaEncargado || '');
     setSuggestOpen(true);
   };
 
@@ -86,16 +94,36 @@ export function EncargadoView({ sucursalId }: { sucursalId: string | null }): JS
     setSaving(true);
     try {
       await api.patch(`/requisicion-mos/${detail.id}/sugerir/${activeItem.id}`, {
-        cantidad,
-        comentario: comentario.trim(),
+        sugerencia: comentario.trim(),
+        cantidadFinal: Math.floor(cantidad),
       });
       toast.success('Sugerencia enviada');
       setSuggestOpen(false);
       load();
-    } catch {
-      toast.error('Error al enviar la sugerencia');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string | string[] } } })?.response
+        ?.data?.message;
+      const text = Array.isArray(msg) ? msg.join(', ') : msg;
+      toast.error(text || 'Error al enviar la sugerencia');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const markAsReviewed = async (): Promise<void> => {
+    if (!detail) return;
+    setMarkingReviewed(true);
+    try {
+      await api.patch(`/requisicion-mos/${detail.id}/revisar`);
+      toast.success('Requisicion marcada como revisada');
+      load();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string | string[] } } })?.response
+        ?.data?.message;
+      const text = Array.isArray(msg) ? msg.join(', ') : msg;
+      toast.error(text || 'Error al marcar como revisada');
+    } finally {
+      setMarkingReviewed(false);
     }
   };
 
@@ -187,14 +215,16 @@ export function EncargadoView({ sucursalId }: { sucursalId: string | null }): JS
                         <TableCell>{item.displaysAComprar}</TableCell>
                         <TableCell>{fmtMoney(item.dinero)}</TableCell>
                         <TableCell>
-                          {item.sugerenciaCantidad != null ? (
+                          {item.cantidadFinal != null || item.sugerenciaEncargado ? (
                             <div className="text-xs">
-                              <Badge className="bg-amber-100 text-amber-700">
-                                {item.sugerenciaCantidad}
-                              </Badge>
-                              {item.sugerenciaComentario && (
+                              {item.cantidadFinal != null && (
+                                <Badge className="bg-amber-100 text-amber-700">
+                                  {item.cantidadFinal}
+                                </Badge>
+                              )}
+                              {item.sugerenciaEncargado && (
                                 <div className="text-slate-500 mt-1">
-                                  {item.sugerenciaComentario}
+                                  {item.sugerenciaEncargado}
                                 </div>
                               )}
                             </div>
@@ -220,8 +250,27 @@ export function EncargadoView({ sucursalId }: { sucursalId: string | null }): JS
                 </Table>
               </div>
 
-              <div className="text-right border-t pt-3">
+              <div className="flex flex-col gap-3 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-lg font-bold">Total: {fmtMoney(detail.totalDinero)}</p>
+                {detail.estado === 'GENERADA' && (
+                  <Button
+                    onClick={markAsReviewed}
+                    disabled={markingReviewed}
+                    className="bg-emerald-600 hover:bg-emerald-700 min-h-[44px] w-full sm:w-auto"
+                  >
+                    {markingReviewed ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                    )}
+                    Marcar como Revisada
+                  </Button>
+                )}
+                {detail.estado === 'REVISADA' && (
+                  <Badge className="bg-emerald-100 text-emerald-700 self-start sm:self-auto">
+                    <CheckCircle2 className="h-3 w-3 mr-1" /> Revisada
+                  </Badge>
+                )}
               </div>
             </div>
           )}

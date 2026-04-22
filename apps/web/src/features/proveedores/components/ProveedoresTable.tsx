@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/table';
 import { SortableHeader } from '@/components/ui/sortable-header';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Plus, Search, PowerOff, Power, Store } from 'lucide-react';
+import { Pencil, Plus, Search, PowerOff, Power, Store, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { TableSkeletonRows } from '@/components/ui/table-skeleton';
@@ -75,6 +75,12 @@ export function ProveedoresTable(): JSX.Element {
   const [filter, setFilter] = useState('');
   const [sorting, setSorting] = useState<SortingState>([]);
   const [deactivateId, setDeactivateId] = useState<string | null>(null);
+  const [hardDeleteTarget, setHardDeleteTarget] = useState<Proveedor | null>(null);
+  const [hardDeleteCheck, setHardDeleteCheck] = useState<{
+    canDelete: boolean;
+    blockers: Record<string, number>;
+  } | null>(null);
+  const [hardDeleteLoading, setHardDeleteLoading] = useState(false);
 
   const {
     register,
@@ -167,6 +173,37 @@ export function ProveedoresTable(): JSX.Element {
     setDeactivateId(null);
   };
 
+  const openHardDelete = async (p: Proveedor): Promise<void> => {
+    setHardDeleteTarget(p);
+    setHardDeleteCheck(null);
+    try {
+      const r = await api.get(`/proveedores/${p.id}/check-hard-delete`);
+      setHardDeleteCheck(r.data.data || r.data);
+    } catch {
+      toast.error('No se pudo verificar el historial');
+      setHardDeleteTarget(null);
+    }
+  };
+
+  const handleHardDeleteConfirm = async (): Promise<void> => {
+    if (!hardDeleteTarget) return;
+    setHardDeleteLoading(true);
+    try {
+      await api.delete(`/proveedores/${hardDeleteTarget.id}/hard`);
+      toast.success('Proveedor eliminado permanentemente');
+      setHardDeleteTarget(null);
+      setHardDeleteCheck(null);
+      load();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string | string[] } } })?.response
+        ?.data?.message;
+      const text = Array.isArray(msg) ? msg.join(', ') : msg;
+      toast.error(text || 'Error al eliminar');
+    } finally {
+      setHardDeleteLoading(false);
+    }
+  };
+
   const columns: ColumnDef<Proveedor>[] = [
     {
       accessorKey: 'ordenRuta',
@@ -245,6 +282,15 @@ export function ProveedoresTable(): JSX.Element {
                 <Power className="h-4 w-4 text-green-500" />
               </Button>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="min-h-[44px] min-w-[44px] hover:bg-red-100 hover:text-red-700"
+              onClick={() => openHardDelete(p)}
+              title="Eliminar permanentemente"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         );
       },
@@ -406,6 +452,81 @@ export function ProveedoresTable(): JSX.Element {
         description="Este proveedor sera desactivado y no aparecera en futuras ordenes de compra. Puedes reactivarlo despues."
         confirmLabel="Desactivar"
       />
+
+      <Dialog
+        open={!!hardDeleteTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setHardDeleteTarget(null);
+            setHardDeleteCheck(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar permanentemente</DialogTitle>
+          </DialogHeader>
+          {!hardDeleteCheck ? (
+            <div className="py-8 text-center text-slate-500">
+              <Loader2 className="h-6 w-6 mx-auto animate-spin" />
+            </div>
+          ) : hardDeleteCheck.canDelete ? (
+            <div className="space-y-3">
+              <p className="text-sm text-slate-700">
+                Se eliminara permanentemente al proveedor{' '}
+                <span className="font-semibold">{hardDeleteTarget?.nombre}</span>.
+              </p>
+              <p className="text-xs text-slate-500">
+                Este proveedor no tiene productos, insumos ni movimientos asociados. Esta accion no
+                se puede deshacer.
+              </p>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setHardDeleteTarget(null)}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleHardDeleteConfirm}
+                  disabled={hardDeleteLoading}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {hardDeleteLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-2" />
+                  )}
+                  Eliminar permanentemente
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-slate-700">
+                No se puede eliminar permanentemente a{' '}
+                <span className="font-semibold">{hardDeleteTarget?.nombre}</span> porque tiene
+                registros asociados:
+              </p>
+              <ul className="text-sm text-slate-600 space-y-1 rounded-md bg-slate-50 border p-3">
+                {Object.entries(hardDeleteCheck.blockers)
+                  .filter(([, n]) => n > 0)
+                  .map(([key, n]) => (
+                    <li key={key} className="flex justify-between">
+                      <span className="capitalize">{key}</span>
+                      <span className="font-semibold">{n}</span>
+                    </li>
+                  ))}
+              </ul>
+              <p className="text-xs text-slate-500">
+                Para preservar la trazabilidad, usa el boton de <b>Desactivar</b> en su lugar.
+              </p>
+              <div className="flex justify-end pt-2">
+                <Button variant="outline" onClick={() => setHardDeleteTarget(null)}>
+                  Entendido
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

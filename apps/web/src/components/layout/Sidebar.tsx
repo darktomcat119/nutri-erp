@@ -50,6 +50,7 @@ function getNavItems(role: string): NavItem[] {
         { label: 'Productos', href: '/catalogos/productos', icon: Package },
         { label: 'Insumos', href: '/catalogos/insumos', icon: UtensilsCrossed },
         { label: 'Platillos', href: '/catalogos/platillos', icon: UtensilsCrossed },
+        { label: 'Categorias', href: '/catalogos/categorias', icon: Tag },
         { label: 'Proveedores', href: '/catalogos/proveedores', icon: Store },
         { label: 'Sucursales', href: '/catalogos/sucursales', icon: Building2 },
       ],
@@ -69,7 +70,6 @@ function getNavItems(role: string): NavItem[] {
       icon: Settings,
       children: [
         { label: 'Usuarios', href: '/config/usuarios', icon: Users },
-        { label: 'Categorias', href: '/config/categorias', icon: Tag },
         { label: 'Integraciones', href: '/config/integraciones', icon: Key },
       ],
     },

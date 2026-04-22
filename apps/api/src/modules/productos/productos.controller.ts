@@ -129,4 +129,29 @@ export class ProductosController {
   async remove(@Param('id') id: string) {
     return this.productosService.remove(id);
   }
+
+  @Get(':id/config-sucursales')
+  @ApiOperation({ summary: 'Listar config (max, precio, etc.) por sucursal para un producto' })
+  async listConfigSucursales(@Param('id') id: string) {
+    return this.productosService.listConfigSucursales(id);
+  }
+
+  @Patch(':id/config-sucursales/:sucursalId')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Actualizar/crear config producto\u00d7sucursal (max, precio, margen)' })
+  async upsertConfigSucursal(
+    @Param('id') productoId: string,
+    @Param('sucursalId') sucursalId: string,
+    @Body()
+    body: {
+      maxSemanal?: number | null;
+      precioVenta?: number | null;
+      margen?: number | null;
+      quienSurte?: string | null;
+      activo?: boolean;
+    },
+  ) {
+    return this.productosService.upsertConfigSucursal(productoId, sucursalId, body);
+  }
 }

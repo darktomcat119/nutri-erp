@@ -53,7 +53,8 @@ export class PresupuestoInsService {
 
   /**
    * Generate INS budget from OrderEat live sales API.
-   * Defaults to the 7 days ending on fechaEjecucion.
+   * Rule: use the 7 previous FULL days — fechaEjecucion itself is NOT included.
+   * Default window: [fechaEjecucion - 7 days, fechaEjecucion - 1 day] inclusive = 7 days.
    */
   async generateFromOrderEatLive(
     sucursalId: string,
@@ -63,8 +64,9 @@ export class PresupuestoInsService {
     from?: Date,
     until?: Date,
   ) {
-    const untilDate = until ?? fechaEjecucion;
-    const fromDate = from ?? new Date(untilDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const DAY = 24 * 60 * 60 * 1000;
+    const untilDate = until ?? new Date(fechaEjecucion.getTime() - DAY);
+    const fromDate = from ?? new Date(untilDate.getTime() - 6 * DAY);
     const fromStr = fromDate.toISOString().slice(0, 10);
     const untilStr = untilDate.toISOString().slice(0, 10);
 

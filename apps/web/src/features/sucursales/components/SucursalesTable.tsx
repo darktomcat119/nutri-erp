@@ -16,7 +16,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Plus, PowerOff, Power, Building2, Loader2 } from 'lucide-react';
+import { Pencil, Plus, PowerOff, Power, Building2, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DataTableShell } from '@/components/ui/data-table-shell';
@@ -44,6 +44,12 @@ export function SucursalesTable(): JSX.Element {
   const [editing, setEditing] = useState<Sucursal | null>(null);
   const [saving, setSaving] = useState(false);
   const [deactivateId, setDeactivateId] = useState<string | null>(null);
+  const [hardDeleteTarget, setHardDeleteTarget] = useState<Sucursal | null>(null);
+  const [hardDeleteCheck, setHardDeleteCheck] = useState<{
+    canDelete: boolean;
+    blockers: Record<string, number>;
+  } | null>(null);
+  const [hardDeleteLoading, setHardDeleteLoading] = useState(false);
 
   const {
     register,
@@ -120,6 +126,37 @@ export function SucursalesTable(): JSX.Element {
     if (!deactivateId) return;
     await handleToggleActivo(deactivateId);
     setDeactivateId(null);
+  };
+
+  const openHardDelete = async (s: Sucursal): Promise<void> => {
+    setHardDeleteTarget(s);
+    setHardDeleteCheck(null);
+    try {
+      const r = await api.get(`/sucursales/${s.id}/check-hard-delete`);
+      setHardDeleteCheck(r.data.data || r.data);
+    } catch {
+      toast.error('No se pudo verificar el historial');
+      setHardDeleteTarget(null);
+    }
+  };
+
+  const handleHardDeleteConfirm = async (): Promise<void> => {
+    if (!hardDeleteTarget) return;
+    setHardDeleteLoading(true);
+    try {
+      await api.delete(`/sucursales/${hardDeleteTarget.id}/hard`);
+      toast.success('Sucursal eliminada permanentemente');
+      setHardDeleteTarget(null);
+      setHardDeleteCheck(null);
+      load();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string | string[] } } })?.response
+        ?.data?.message;
+      const text = Array.isArray(msg) ? msg.join(', ') : msg;
+      toast.error(text || 'Error al eliminar');
+    } finally {
+      setHardDeleteLoading(false);
+    }
   };
 
   return (
@@ -253,6 +290,15 @@ export function SucursalesTable(): JSX.Element {
                     <Power className="h-3.5 w-3.5" />
                   </Button>
                 )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => openHardDelete(s)}
+                  className="h-8 w-8 hover:bg-red-100 hover:text-red-700"
+                  title="Eliminar permanentemente"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
             ),
           },
@@ -269,6 +315,83 @@ export function SucursalesTable(): JSX.Element {
         description="Esta sucursal sera desactivada. Puedes reactivarla despues."
         confirmLabel="Desactivar"
       />
+
+      <Dialog
+        open={!!hardDeleteTarget}
+        onOpenChange={(openState) => {
+          if (!openState) {
+            setHardDeleteTarget(null);
+            setHardDeleteCheck(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar permanentemente</DialogTitle>
+          </DialogHeader>
+          {!hardDeleteCheck ? (
+            <div className="py-8 text-center text-slate-500">
+              <Loader2 className="h-6 w-6 mx-auto animate-spin" />
+            </div>
+          ) : hardDeleteCheck.canDelete ? (
+            <div className="space-y-3">
+              <p className="text-sm text-slate-700">
+                Se eliminara permanentemente la sucursal{' '}
+                <span className="font-semibold">{hardDeleteTarget?.codigo}</span> —{' '}
+                {hardDeleteTarget?.nombre}.
+              </p>
+              <p className="text-xs text-slate-500">
+                Esta sucursal no tiene movimientos asociados, por lo que puede eliminarse de forma
+                segura. Esta accion no se puede deshacer.
+              </p>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setHardDeleteTarget(null)}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleHardDeleteConfirm}
+                  disabled={hardDeleteLoading}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {hardDeleteLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-2" />
+                  )}
+                  Eliminar permanentemente
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-slate-700">
+                No se puede eliminar permanentemente{' '}
+                <span className="font-semibold">{hardDeleteTarget?.codigo}</span> porque tiene
+                movimientos asociados:
+              </p>
+              <ul className="text-sm text-slate-600 space-y-1 rounded-md bg-slate-50 border p-3">
+                {Object.entries(hardDeleteCheck.blockers)
+                  .filter(([, n]) => n > 0)
+                  .map(([key, n]) => (
+                    <li key={key} className="flex justify-between">
+                      <span className="capitalize">{key}</span>
+                      <span className="font-semibold">{n}</span>
+                    </li>
+                  ))}
+              </ul>
+              <p className="text-xs text-slate-500">
+                Para preservar la trazabilidad contable, usa el boton de <b>Desactivar</b> en su
+                lugar.
+              </p>
+              <div className="flex justify-end pt-2">
+                <Button variant="outline" onClick={() => setHardDeleteTarget(null)}>
+                  Entendido
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

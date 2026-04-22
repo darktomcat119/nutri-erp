@@ -241,8 +241,13 @@ export function RequisicionInsForm(): JSX.Element {
         submit ? 'Requisicion enviada para aprobacion' : 'Requisicion guardada como borrador',
       );
       if (submit) setEstado('ENVIADA');
-    } catch {
-      toast.error('Error al guardar');
+      await loadExisting();
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string | string[] } } })?.response?.data
+          ?.message;
+      const text = Array.isArray(msg) ? msg.join(', ') : msg;
+      toast.error(text || 'Error al guardar la requisicion');
     } finally {
       setLoading(false);
     }

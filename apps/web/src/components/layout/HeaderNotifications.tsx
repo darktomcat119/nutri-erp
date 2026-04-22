@@ -141,16 +141,17 @@ export function HeaderNotifications(): JSX.Element | null {
           for (const s of d.sucursales || []) {
             if (!s.tokenConfigured || !s.tokenUpdatedAt) continue;
             const days = (now - new Date(s.tokenUpdatedAt).getTime()) / 86400000;
-            if (days >= 2) {
+            // Monthly rotation window: warn from day 25, expired from day 30.
+            if (days >= 25) {
+              const expired = days >= 30;
               items.push({
                 id: `tok-${s.codigo}`,
                 icon: KeyRound,
-                iconTone: days >= 3 ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600',
+                iconTone: expired ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600',
                 label: `Token ${s.codigo}`,
-                detail:
-                  days >= 3
-                    ? `Caducado hace ${Math.floor(days - 3)}d. Actualizalo.`
-                    : `Expira pronto (${Math.floor(3 - days)}d restantes)`,
+                detail: expired
+                  ? `Caducado hace ${Math.floor(days - 30)}d. Actualizalo en OrderEat.`
+                  : `Expira pronto (${Math.max(0, Math.floor(30 - days))}d restantes)`,
                 href: '/config/integraciones',
               });
             }

@@ -43,7 +43,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Pencil, Trash2, Plus, Search, Download, Upload, Package } from 'lucide-react';
+import { Pencil, Trash2, Plus, Search, Download, Upload, Package, Store } from 'lucide-react';
+import { MaximosPerSucursalDialog } from './MaximosPerSucursalDialog';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { TableSkeletonRows } from '@/components/ui/table-skeleton';
@@ -101,6 +102,7 @@ export function ProductosTable(): JSX.Element {
   const [filter, setFilter] = useState('');
   const [sorting, setSorting] = useState<SortingState>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [maxSucursalFor, setMaxSucursalFor] = useState<Producto | null>(null);
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Import preview (dry-run before applying)
@@ -461,6 +463,14 @@ export function ProductosTable(): JSX.Element {
       header: 'Acciones',
       cell: ({ row }) => (
         <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMaxSucursalFor(row.original)}
+            title="Maximos por Sucursal"
+          >
+            <Store className="h-4 w-4 text-blue-600" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
             <Pencil className="h-4 w-4" />
           </Button>
@@ -803,6 +813,13 @@ export function ProductosTable(): JSX.Element {
           setImportOpen(false);
           setImportJobId(null);
         }}
+      />
+
+      <MaximosPerSucursalDialog
+        open={!!maxSucursalFor}
+        onOpenChange={(o) => !o && setMaxSucursalFor(null)}
+        productoId={maxSucursalFor?.id ?? null}
+        productoNombre={maxSucursalFor?.nombre ?? ''}
       />
     </div>
   );

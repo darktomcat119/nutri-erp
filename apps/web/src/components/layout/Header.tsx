@@ -23,6 +23,7 @@ const TITLES: Record<string, string> = {
   '/catalogos/platillos': 'Platillos',
   '/catalogos/proveedores': 'Proveedores',
   '/catalogos/sucursales': 'Sucursales',
+  '/catalogos/categorias': 'Categorias',
   '/requisiciones': 'Requisiciones INS',
   '/requisicion-mos': 'Requisicion MOS',
   '/mi-requisicion': 'Mi Requisicion INS',
@@ -36,7 +37,6 @@ const TITLES: Record<string, string> = {
   '/reportes': 'Reportes',
   '/config': 'Configuracion',
   '/config/usuarios': 'Usuarios',
-  '/config/categorias': 'Categorias',
   '/config/integraciones': 'Integraciones',
   '/perfil': 'Mi Perfil',
 };

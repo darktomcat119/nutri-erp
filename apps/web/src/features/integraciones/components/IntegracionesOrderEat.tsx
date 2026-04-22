@@ -55,10 +55,13 @@ function formatAge(daysOld: number | null): string {
 }
 
 type AgeLevel = 'none' | 'fresh' | 'warn' | 'expired';
+
+// Token rotation assumed monthly. Warn from day 25 so encargados have time
+// to request + paste a new token before OrderEat stops accepting it.
 function ageLevel(daysOld: number | null): AgeLevel {
   if (daysOld === null) return 'none';
-  if (daysOld < 2) return 'fresh';
-  if (daysOld < 3) return 'warn';
+  if (daysOld < 25) return 'fresh';
+  if (daysOld < 30) return 'warn';
   return 'expired';
 }
 
