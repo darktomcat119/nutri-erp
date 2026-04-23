@@ -222,6 +222,21 @@ export class RequisicionMosService {
   }
 
   /**
+   * List all MOS requisitions for a specific branch (for ENCARGADO's view).
+   */
+  async findAllBySucursal(sucursalId: string) {
+    const requisiciones = await this.prisma.requisicionMos.findMany({
+      where: { sucursalId },
+      include: {
+        sucursal: true,
+        _count: { select: { items: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return { data: requisiciones, message: 'Requisiciones MOS de mi sucursal' };
+  }
+
+  /**
    * Get a single MOS requisition with all items.
    */
   async findOne(id: string) {

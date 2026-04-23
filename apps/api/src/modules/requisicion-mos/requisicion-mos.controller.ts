@@ -18,6 +18,8 @@ import { Role } from '@prisma/client';
 import { RequisicionMosService } from './requisicion-mos.service';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { JwtPayload } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('Requisicion MOS')
 @ApiBearerAuth()
@@ -77,6 +79,14 @@ export class RequisicionMosController {
     @Param('sucursalId') sucursalId: string,
   ) {
     return this.requisicionMosService.getForBranch(semana, sucursalId);
+  }
+
+  @Get('mi-sucursal')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ENCARGADO)
+  @ApiOperation({ summary: 'Lista requisiciones MOS de la sucursal del encargado' })
+  async findMyBranch(@CurrentUser() user: JwtPayload) {
+    return this.requisicionMosService.findAllBySucursal(user.sucursalId!);
   }
 
   @Get(':id')

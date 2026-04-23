@@ -72,7 +72,7 @@ export class RequisicionesController {
 
   @Post(':id/aprobar')
   @UseGuards(RolesGuard)
-  @Roles(Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @ApiOperation({ summary: 'Aprobar requisicion' })
   async approve(@Param('id') id: string) {
     return this.requisicionesService.approve(id);
@@ -80,7 +80,7 @@ export class RequisicionesController {
 
   @Post(':id/rechazar')
   @UseGuards(RolesGuard)
-  @Roles(Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @ApiOperation({ summary: 'Rechazar requisicion' })
   async reject(@Param('id') id: string, @Body('notas') notas?: string) {
     return this.requisicionesService.reject(id, notas);

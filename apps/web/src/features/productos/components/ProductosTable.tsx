@@ -462,19 +462,26 @@ export function ProductosTable(): JSX.Element {
       id: 'actions',
       header: 'Acciones',
       cell: ({ row }) => (
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setMaxSucursalFor(row.original)}
+            className="h-8 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+            title="Configurar maximo semanal, precio y margen por sucursal"
+          >
+            <Store className="h-3.5 w-3.5 mr-1.5" />
+            Max/Sucursal
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)} title="Editar">
+            <Pencil className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setMaxSucursalFor(row.original)}
-            title="Maximos por Sucursal"
+            onClick={() => setDeleteId(row.original.id)}
+            title="Desactivar"
           >
-            <Store className="h-4 w-4 text-blue-600" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => setDeleteId(row.original.id)}>
             <Trash2 className="h-4 w-4 text-red-500" />
           </Button>
         </div>

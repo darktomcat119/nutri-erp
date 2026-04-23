@@ -56,7 +56,7 @@ export class OrdenesCompraController {
 
   @Post('generar')
   @UseGuards(RolesGuard)
-  @Roles(Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @ApiOperation({ summary: 'Generar OC desde requisiciones aprobadas' })
   async generar(@Body() dto: GenerarOcDto) {
     return this.ordenesCompraService.generar(dto.semana);

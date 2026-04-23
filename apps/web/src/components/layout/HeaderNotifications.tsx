@@ -12,6 +12,8 @@ import {
   AlertCircle,
   CheckCheck,
   KeyRound,
+  Package,
+  XCircle,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -94,6 +96,36 @@ export function HeaderNotifications(): JSX.Element | null {
         }
       }
 
+      // MOS requisitions REVISADA (ADMIN / SUPERVISOR) — encargado finished review, admin can approve
+      if (role === 'ADMIN' || role === 'SUPERVISOR') {
+        try {
+          const r = await api.get('/requisicion-mos');
+          const list = unwrap<
+            Array<{
+              id: string;
+              estado: string;
+              semana: string;
+              sucursal?: { codigo: string };
+              createdAt: string;
+            }>
+          >(r);
+          const revisadas = (list || []).filter((x) => x.estado === 'REVISADA').slice(0, 5);
+          for (const rq of revisadas) {
+            items.push({
+              id: `mos-${rq.id}`,
+              icon: Package,
+              iconTone: 'bg-indigo-50 text-indigo-600',
+              label: `MOS ${rq.sucursal?.codigo || '—'} (${rq.semana})`,
+              detail: 'Revisada por encargado. Requiere aprobacion.',
+              time: timeAgo(rq.createdAt),
+              href: '/requisicion-mos',
+            });
+          }
+        } catch {
+          /* silent */
+        }
+      }
+
       // OCs pending approval / execution (ADMIN / SUPERVISOR)
       if (role === 'ADMIN' || role === 'SUPERVISOR') {
         try {
@@ -155,6 +187,60 @@ export function HeaderNotifications(): JSX.Element | null {
                 href: '/config/integraciones',
               });
             }
+          }
+        } catch {
+          /* silent */
+        }
+      }
+
+      // MOS requisition GENERADA for Encargado's branch (waiting for their review)
+      if (role === 'ENCARGADO' && user.sucursalId) {
+        try {
+          const r = await api.get('/requisicion-mos/mi-sucursal');
+          const list = unwrap<
+            Array<{ id: string; estado: string; semana: string; createdAt: string }>
+          >(r);
+          const pendientes = (list || []).filter((x) => x.estado === 'GENERADA').slice(0, 3);
+          for (const rq of pendientes) {
+            items.push({
+              id: `mos-enc-${rq.id}`,
+              icon: Package,
+              iconTone: 'bg-indigo-50 text-indigo-600',
+              label: `Pedido MOS ${rq.semana}`,
+              detail: 'El admin genero tu pedido. Revisalo y marca como revisada.',
+              time: timeAgo(rq.createdAt),
+              href: '/requisicion-mos',
+            });
+          }
+        } catch {
+          /* silent */
+        }
+      }
+
+      // Rejected INS requisitions (ENCARGADO) — their own requisitions marked RECHAZADA
+      if (role === 'ENCARGADO') {
+        try {
+          const r = await api.get('/requisiciones/mi-sucursal');
+          const list = unwrap<
+            Array<{
+              id: string;
+              estado: string;
+              semana: string;
+              notas?: string | null;
+              updatedAt: string;
+            }>
+          >(r);
+          const rejected = (list || []).filter((x) => x.estado === 'RECHAZADA').slice(0, 3);
+          for (const rq of rejected) {
+            items.push({
+              id: `req-rej-${rq.id}`,
+              icon: XCircle,
+              iconTone: 'bg-red-50 text-red-600',
+              label: `Requisicion ${rq.semana} rechazada`,
+              detail: rq.notas ? `Motivo: ${rq.notas}` : 'Revisa el detalle para corregir y reenviar.',
+              time: timeAgo(rq.updatedAt),
+              href: '/mi-requisicion',
+            });
           }
         } catch {
           /* silent */
